@@ -1,0 +1,32 @@
+# Mapa del nivel 1 (selva). Cada caracter es una celda de 64x64 px.
+# .=suelo  ==trocha  T=arbol (bloquea paso y luz)  M=matorral (esconde)
+# H=tronco hueco (escondite)  ~=rio (meta)  C=inicio de Carlos
+# Lineas RUTA: puntos de patrulla de cada soldado, en celdas (columna,fila).
+TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~
+T.TT..T......M.TTTT.......T..TT..MM...~~
+T..T..MM......TT....T.......TMT.....M.~~
+T...MTM........MM........M...T........~~
+T...TT..T......TTT....................~~
+T.TT....T.M......M..TM................~~
+T...MTTT...........M..................~~
+T.T...TT.T....M...M...M......M.M.H....~~
+T..M...M.T............................~~
+T..M.....MT.....M..........MM...MM.M..~~
+T......M.......M..M.....M......T......~~
+T......TT..TM....M....H....TMTTM..M.M.~~
+T=C===..............TTTTTT.T.T...M....~~
+T.M..=...TMTM..M.M......T...M...T..M..~~
+T....=...TH..TTM........T......M......~~
+T....=======..........T...T....M......~~
+T....TTMTTM=T..T.............========.~~
+T...T..M.T.=T.M.........M....=TT...M..~~
+T.....M.TTT=======..M..=======THT.M...~~
+T..T.T......T...M=.M...=..M......T..M.~~
+T.MTT.T.........H=======..M......T....~~
+T..TTM.MM.................M.........M.~~
+T..TMT.................M...M.......M..~~
+TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~
+RUTA 13,7 20,7 20,10 13,10
+RUTA 24,5 30,5 30,8 24,8
+RUTA 19,17 27,17 27,21 19,21
+RUTA 35,2 35,21
