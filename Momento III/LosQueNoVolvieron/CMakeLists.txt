@@ -10,9 +10,10 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 qt_standard_project_setup()
 
-# Todas las imagenes de recursos/sprites entran al ejecutable como :/sprites/...
+# Sprites y mapas entran al ejecutable como :/sprites/... y :/mapas/...
 file(GLOB_RECURSE SPRITES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-     ${CMAKE_CURRENT_SOURCE_DIR}/recursos/sprites/*.png)
+     ${CMAKE_CURRENT_SOURCE_DIR}/recursos/sprites/*.png
+     ${CMAKE_CURRENT_SOURCE_DIR}/recursos/mapas/*.txt)
 
 qt_add_executable(LosQueNoVolvieron
     main.cpp
@@ -20,10 +21,13 @@ qt_add_executable(LosQueNoVolvieron
     # ---- Capa logica ----
     logica/control/Juego.h            logica/control/Juego.cpp
     logica/niveles/Nivel.h            logica/niveles/Nivel.cpp
+    logica/niveles/NivelSelva.h       logica/niveles/NivelSelva.cpp
 
     logica/entidades/Entidad.h        logica/entidades/Entidad.cpp
     logica/entidades/Personaje.h      logica/entidades/Personaje.cpp
     logica/entidades/Carlos.h         logica/entidades/Carlos.cpp
+    logica/entidades/Soldado.h        logica/entidades/Soldado.cpp
+    logica/entidades/Linterna.h       logica/entidades/Linterna.cpp
 
     logica/fisica/ModeloFisico.h          logica/fisica/ModeloFisico.cpp
     logica/fisica/MovimientoParabolico.h  logica/fisica/MovimientoParabolico.cpp
@@ -35,6 +39,7 @@ qt_add_executable(LosQueNoVolvieron
     vista/VentanaPrincipal.h  vista/VentanaPrincipal.cpp
     vista/EscenaJuego.h       vista/EscenaJuego.cpp
     vista/EscenaPruebaFisica.h vista/EscenaPruebaFisica.cpp
+    vista/EscenaNivelSelva.h  vista/EscenaNivelSelva.cpp
 )
 
 qt_add_resources(LosQueNoVolvieron "recursos"
@@ -67,3 +72,25 @@ qt_add_executable(pruebas_fisica
 target_include_directories(pruebas_fisica PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/logica)
 target_link_libraries(pruebas_fisica PRIVATE Qt6::Core)
 set_target_properties(pruebas_fisica PROPERTIES WIN32_EXECUTABLE OFF MACOSX_BUNDLE OFF)
+
+# ---- Pruebas de las reglas del nivel 1 (consola, sin graficos) ----
+qt_add_executable(pruebas_nivel
+    pruebas/pruebas_nivel.cpp
+    logica/niveles/Nivel.cpp
+    logica/niveles/NivelSelva.cpp
+    logica/entidades/Entidad.cpp
+    logica/entidades/Personaje.cpp
+    logica/entidades/Carlos.cpp
+    logica/entidades/Soldado.cpp
+    logica/entidades/Linterna.cpp
+    logica/fisica/ModeloFisico.cpp
+    logica/fisica/MovimientoPendular.cpp
+)
+qt_add_resources(pruebas_nivel "mapas"
+    PREFIX "/"
+    BASE recursos
+    FILES recursos/mapas/selva.txt
+)
+target_include_directories(pruebas_nivel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/logica)
+target_link_libraries(pruebas_nivel PRIVATE Qt6::Core)
+set_target_properties(pruebas_nivel PROPERTIES WIN32_EXECUTABLE OFF MACOSX_BUNDLE OFF)
