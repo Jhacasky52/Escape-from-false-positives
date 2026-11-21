@@ -18,9 +18,14 @@ public:
     static constexpr int ALTO = 600;
 
 private:
+    void mostrarEscena(EscenaJuego *escena);
+    void alternarPruebaFisica();
+
     QGraphicsView *vista;
-    EscenaJuego *escena;
     Juego *juego;
+    EscenaJuego *escenaNivel1;
+    EscenaJuego *escenaPrueba;
+    EscenaJuego *escenaActual;
 };
 
 #endif
