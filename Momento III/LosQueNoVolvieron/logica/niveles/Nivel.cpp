@@ -1,5 +1,6 @@
 #include "Nivel.h"
 #include "entidades/Carlos.h"
+#include "entidades/Soldado.h"
 
 Nivel::Nivel() : carlos(nullptr), capturado(false) {}
 
@@ -29,4 +30,6 @@ void Nivel::liberar()
 {
     delete carlos;
     carlos = nullptr;
+    qDeleteAll(soldados);
+    soldados.clear();
 }

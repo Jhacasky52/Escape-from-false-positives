@@ -2,12 +2,14 @@
 #define NIVEL_H
 
 #include <QRectF>
+#include <QList>
 
 class Carlos;
+class Soldado;
 
 // Clase abstracta con lo comun a todos los niveles.
 // NivelSelva (fase 2) y NivelRio (fase 5) heredan de aqui.
-// Los soldados y las animas se agregan en las fases 2 y 4.
+// Las animas se agregan en la fase 4.
 class Nivel
 {
 public:
@@ -22,6 +24,7 @@ public:
     virtual void reiniciar();
 
     Carlos *getCarlos() const { return carlos; }
+    const QList<Soldado *> &getSoldados() const { return soldados; }
     QRectF getMeta() const { return meta; }
     QRectF getLimites() const { return limites; }
 
@@ -29,6 +32,7 @@ protected:
     void liberar();   // borra todas las entidades creadas con new
 
     Carlos *carlos;
+    QList<Soldado *> soldados;   // memoria dinamica: el nivel es el dueno
     QRectF meta;
     QRectF limites;
     bool capturado;

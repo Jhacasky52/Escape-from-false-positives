@@ -1,7 +1,7 @@
 #include "Carlos.h"
 
 Carlos::Carlos(const QPointF &posicion)
-    : Personaje(posicion, QSizeF(48, 48), VELOCIDAD_CAMINAR),
+    : Personaje(posicion, QSizeF(28, 28), VELOCIDAD_CAMINAR),
       corriendo(false), panico(0.0), ruido(0.0), aire(100.0) {}
 
 void Carlos::actualizar(double dt)
