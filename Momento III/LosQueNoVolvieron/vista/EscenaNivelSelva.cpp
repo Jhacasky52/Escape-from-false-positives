@@ -5,9 +5,17 @@
 #include "entidades/Carlos.h"
 #include "entidades/Soldado.h"
 #include "entidades/Linterna.h"
+#include "entidades/Piedra.h"
+#include "rasgos/ConocedorDelMonte.h"
+#include "rasgos/Miedoso.h"
 
 #include <QGraphicsPixmapItem>
 #include <QGraphicsRectItem>
+#include <QGraphicsEllipseItem>
+#include <QGraphicsSimpleTextItem>
+#ifdef HAY_MULTIMEDIA
+#include <QSoundEffect>
+#endif
 #include <QGraphicsView>
 #include <QPainter>
 #include <QRadialGradient>
@@ -16,8 +24,9 @@
 
 namespace {
 // Capas de dibujo (z): suelo < personajes < vegetacion < oscuridad < luz < interfaz
-const double Z_SUELO = 0, Z_ESCONDITE = 5, Z_PERSONAJES = 10, Z_VEGETACION = 20,
-             Z_OSCURIDAD = 30, Z_LUZ = 40, Z_BARRAS = 50;
+const double Z_SUELO = 0, Z_ESCONDITE = 5, Z_SOMBRAS = 8, Z_PERSONAJES = 10, Z_VEGETACION = 20,
+             Z_PIEDRAS = 25, Z_OSCURIDAD = 30, Z_LUZ = 40, Z_BARRAS = 50;
+const int MAX_PIEDRAS_VISIBLES = 6;
 const double ESCALA_PERSONAJE = 0.5;   // sprites de 128 px -> 64 px
 
 QPixmap cargar(const QString &ruta)
@@ -33,18 +42,42 @@ double grados(double radianes) { return qRadiansToDegrees(radianes); }
 
 EscenaNivelSelva::EscenaNivelSelva(Juego *juego, NivelSelva *nivel, QObject *parent)
     : EscenaJuego(parent), juego(juego), nivel(nivel), tiempoAnimacion(0.0),
-      mapaConstruido(false), itemCarlos(nullptr), oscuridad(nullptr)
+      mapaConstruido(false), cargando(false), carga(0.0), faseLatido(0.0), pulso(0.0),
+      itemCarlos(nullptr), oscuridad(nullptr)
 {
     spCarlosIdle    = cargar(":/sprites/nivel1_selva/carlos_top_idle.png");
     spCarlosWalk1   = cargar(":/sprites/nivel1_selva/carlos_top_walk1.png");
     spCarlosWalk2   = cargar(":/sprites/nivel1_selva/carlos_top_walk2.png");
     spCarlosRun     = cargar(":/sprites/nivel1_selva/carlos_top_run.png");
+    spCarlosThrow   = cargar(":/sprites/nivel1_selva/carlos_top_throw.png");
+    spCarlosEscondido = cargar(":/sprites/nivel1_selva/carlos_top_escondido.png");
+    spPiedra[0] = cargar(":/sprites/nivel1_selva/piedra_altura_0.png");
+    spPiedra[1] = cargar(":/sprites/nivel1_selva/piedra_altura_1.png");
+    spPiedra[2] = cargar(":/sprites/nivel1_selva/piedra_altura_2.png");
     spSoldadoWalk1  = cargar(":/sprites/nivel1_selva/soldado_top_walk1.png");
     spSoldadoWalk2  = cargar(":/sprites/nivel1_selva/soldado_top_walk2.png");
     spSoldadoAlerta = cargar(":/sprites/nivel1_selva/soldado_top_persiguiendo.png");
 
     construirMapa();
     crearSpritesEntidades();
+
+    // Piedras: un grupo fijo de sprites que se reutilizan
+    for (int i = 0; i < MAX_PIEDRAS_VISIBLES; ++i) {
+        QGraphicsEllipseItem *sombra = addEllipse(-6, -3, 12, 6, Qt::NoPen, QColor(0, 0, 0, 130));
+        sombra->setZValue(Z_SOMBRAS);
+        sombra->hide();
+        sombrasPiedras.append(sombra);
+        QGraphicsPixmapItem *p = addPixmap(spPiedra[0]);
+        p->setOffset(-32, -32);
+        p->setZValue(Z_PIEDRAS);
+        p->hide();
+        itemsPiedras.append(p);
+    }
+
+#ifdef HAY_MULTIMEDIA
+    sonidoLatido = new QSoundEffect(this);
+    sonidoLatido->setSource(QUrl("qrc:/sonidos/latido.wav"));
+#endif
 }
 
 // ------------------------------------------------------------ Construccion
@@ -128,9 +161,13 @@ void EscenaNivelSelva::crearSpritesEntidades()
     qDeleteAll(itemsSoldados);
     qDeleteAll(itemsConos);
     qDeleteAll(barrasSospecha);
+    qDeleteAll(signosSoldados);
     itemsSoldados.clear();
     itemsConos.clear();
     barrasSospecha.clear();
+    signosSoldados.clear();
+    cargando = false;
+    carga = 0.0;
 
     itemCarlos = addPixmap(spCarlosIdle);
     itemCarlos->setOffset(-64, -64);
@@ -157,6 +194,16 @@ void EscenaNivelSelva::crearSpritesEntidades()
         QGraphicsRectItem *barra = addRect(QRectF(0, 0, 40, 5), Qt::NoPen, QColor(230, 200, 60));
         barra->setZValue(Z_BARRAS);
         barrasSospecha.append(barra);
+
+        QGraphicsSimpleTextItem *signo = addSimpleText("?");
+        QFont f = signo->font();
+        f.setPointSize(16);
+        f.setBold(true);
+        signo->setFont(f);
+        signo->setBrush(QColor(240, 210, 80));
+        signo->setZValue(Z_BARRAS);
+        signo->hide();
+        signosSoldados.append(signo);
     }
 }
 
@@ -174,15 +221,57 @@ void EscenaNivelSelva::actualizarLogica(double dt)
         if (teclaPresionada(Qt::Key_S) || teclaPresionada(Qt::Key_Down))  dir.ry() += 1;
         carlos->setDireccion(dir);
         carlos->correr(teclaPresionada(Qt::Key_Shift));
+        if (cargando)
+            carga = qMin(1.0, carga + dt);   // 1 segundo para la fuerza maxima
+        actualizarLatidos(dt);
     }
     juego->actualizar(dt);
+}
+
+void EscenaNivelSelva::actualizarLatidos(double dt)
+{
+    Carlos *carlos = nivel->getCarlos();
+    pulso = qMax(0.0, pulso - dt * 4.0);
+    faseLatido += dt * carlos->ritmoLatidos() / 60.0;
+    if (faseLatido >= 1.0) {
+        faseLatido -= 1.0;
+        pulso = 1.0;
+#ifdef HAY_MULTIMEDIA
+        // Con poco panico el corazon casi no se oye; aterrorizado retumba
+        double panico = carlos->getPanico();
+        if (panico > 10.0) {
+            sonidoLatido->setVolume(0.15 + 0.85 * panico / 100.0);
+            sonidoLatido->play();
+        }
+#endif
+    }
+}
+
+void EscenaNivelSelva::teclaSoltada(int tecla)
+{
+    if (tecla == Qt::Key_Space && cargando) {
+        cargando = false;
+        if (juego->getEstado() == EstadoJuego::JUGANDO)
+            nivel->lanzarPiedra(carga);
+        carga = 0.0;
+    }
 }
 
 void EscenaNivelSelva::teclaPulsada(int tecla)
 {
     EstadoJuego estado = juego->getEstado();
+    Carlos *carlos = nivel->getCarlos();
     if (tecla == Qt::Key_P || tecla == Qt::Key_Escape) {
         juego->alternarPausa();
+    } else if (tecla == Qt::Key_Space && estado == EstadoJuego::JUGANDO
+               && carlos != nullptr && carlos->puedeLanzar()) {
+        cargando = true;
+        carga = 0.0;
+    } else if (tecla == Qt::Key_E && estado == EstadoJuego::JUGANDO && carlos != nullptr) {
+        if (carlos->estaEscondido())
+            carlos->salirDelEscondite();
+        else
+            carlos->esconderse();
     } else if (tecla == Qt::Key_Return || tecla == Qt::Key_Enter) {
         if (estado == EstadoJuego::CAPTURADO || estado == EstadoJuego::FINAL
             || estado == EstadoJuego::NIVEL_SUPERADO) {
@@ -201,7 +290,11 @@ void EscenaNivelSelva::actualizarVista()
 
     // --- Carlos ---
     const QPixmap *sp = &spCarlosIdle;
-    if (carlos->estaMoviendose()) {
+    if (carlos->estaEscondido())
+        sp = &spCarlosEscondido;
+    else if (cargando)
+        sp = &spCarlosThrow;
+    else if (carlos->estaMoviendose()) {
         if (carlos->estaCorriendo())
             sp = &spCarlosRun;
         else
@@ -229,6 +322,14 @@ void EscenaNivelSelva::actualizarVista()
         itemsConos[i]->setRotation(grados(l->direccionActual()) + 90.0);
         itemsConos[i]->setOpacity(persigue ? 0.7 : 0.5);
 
+        QGraphicsSimpleTextItem *signo = signosSoldados[i];
+        if (s->getEstado() == EstadoSoldado::INVESTIGANDO) {
+            signo->setPos(s->getPosicion() + QPointF(-6, -58));
+            signo->show();
+        } else {
+            signo->hide();
+        }
+
         QGraphicsRectItem *barra = barrasSospecha[i];
         if (s->getSospecha() > 0.01 && !persigue) {
             barra->setRect(0, 0, 40 * s->getSospecha(), 5);
@@ -238,6 +339,8 @@ void EscenaNivelSelva::actualizarVista()
             barra->hide();
         }
     }
+
+    actualizarPiedras();
 
     // --- Oscuridad: transparente alrededor de Carlos, negra lejos ---
     QRadialGradient g(carlos->getPosicion(), 330);
@@ -249,6 +352,30 @@ void EscenaNivelSelva::actualizarVista()
     // --- Camara ---
     if (!views().isEmpty())
         views().first()->centerOn(carlos->getPosicion());
+}
+
+void EscenaNivelSelva::actualizarPiedras()
+{
+    const QList<Piedra *> &piedras = nivel->getPiedras();
+    for (int i = 0; i < itemsPiedras.size(); ++i) {
+        if (i >= piedras.size()) {
+            itemsPiedras[i]->hide();
+            sombrasPiedras[i]->hide();
+            continue;
+        }
+        const Piedra *p = piedras[i];
+        double z = p->getAltura();
+        int indice = z < 25 ? 0 : (z < 60 ? 1 : 2);
+        itemsPiedras[i]->setPixmap(spPiedra[indice]);
+        itemsPiedras[i]->setScale(0.45 + z / 250.0);
+        // La altura se ve como tamano y como separacion de la sombra
+        itemsPiedras[i]->setPos(p->getPosicion().x(), p->getPosicion().y() - z * 0.5);
+        sombrasPiedras[i]->setPos(p->getPosicion());
+        sombrasPiedras[i]->setScale(1.0 + z / 120.0);
+        itemsPiedras[i]->setOpacity(p->cayo() ? 0.6 : 1.0);
+        itemsPiedras[i]->show();
+        sombrasPiedras[i]->setVisible(!p->cayo());
+    }
 }
 
 // Interfaz dibujada encima de todo, en coordenadas de la pantalla
@@ -268,7 +395,63 @@ void EscenaNivelSelva::drawForeground(QPainter *painter, const QRectF &rect)
     painter->setFont(f);
     painter->setPen(QColor(220, 220, 200));
     painter->drawText(12, 22, "Nivel 1: La selva   |   llega al rio (derecha) sin que te atrapen");
-    painter->drawText(12, h - 12, "WASD mover  Shift correr  P pausa  F9 prueba de fisicas");
+    painter->drawText(12, h - 12, "WASD mover  Shift correr  Espacio (mantener) lanzar piedra  E esconderse  P pausa  F9 fisicas");
+
+    Carlos *carlos = nivel->getCarlos();
+    if (carlos != nullptr) {
+        // Corazon que late al ritmo del panico + barra de panico
+        double panico = carlos->getPanico();
+        QColor rojo(200 + 55 * pulso, 40, 50);
+        double radio = 9 + 4 * pulso;
+        painter->setRenderHint(QPainter::Antialiasing, true);
+        painter->setBrush(rojo);
+        painter->setPen(Qt::NoPen);
+        painter->drawEllipse(QPointF(w - 230, 20), radio, radio);
+        painter->setBrush(QColor(255, 255, 255, 40));
+        painter->drawRect(w - 212, 14, 150, 12);
+        QColor colorBarra = panico > 60 ? QColor(220, 60, 50) : QColor(220, 170, 60);
+        painter->setBrush(colorBarra);
+        painter->drawRect(QRectF(w - 212, 14, 1.5 * panico, 12));
+        painter->setPen(QColor(220, 220, 200));
+        painter->drawText(w - 55, 25, QString::number(int(carlos->ritmoLatidos())));
+
+        // Escondite: tiempo que le queda
+        if (carlos->estaEscondido()) {
+            double maximo = 6.0;
+            for (Rasgo *r : carlos->getRasgos())
+                if (auto *c = dynamic_cast<ConocedorDelMonte *>(r))
+                    maximo = c->getTiempoMaxEscondido();
+            double resto = qMax(0.0, 1.0 - carlos->getTiempoEscondido() / maximo);
+            painter->setPen(QColor(200, 230, 200));
+            painter->drawText(QRect(0, h - 70, w, 20), Qt::AlignHCenter, "Escondido (E para salir)");
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(QColor(255, 255, 255, 40));
+            painter->drawRect(w / 2 - 75, h - 48, 150, 8);
+            painter->setBrush(QColor(120, 200, 120));
+            painter->drawRect(QRectF(w / 2 - 75, h - 48, 150 * resto, 8));
+        } else if (nivel->esEscondite(carlos->getPosicion())) {
+            painter->setPen(QColor(200, 230, 200));
+            painter->drawText(QRect(0, h - 70, w, 20), Qt::AlignHCenter, "E: esconderse");
+        }
+
+        // Fuerza del lanzamiento
+        if (cargando) {
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(QColor(255, 255, 255, 40));
+            painter->drawRect(w / 2 - 75, h / 2 + 46, 150, 8);
+            painter->setBrush(QColor(230, 220, 160));
+            painter->drawRect(QRectF(w / 2 - 75, h / 2 + 46, 150 * carga, 8));
+        }
+
+        // Con mucho panico la pantalla se oscurece en los bordes al ritmo del corazon
+        if (panico > 60) {
+            QRadialGradient v(QPointF(w / 2.0, h / 2.0), w * 0.7);
+            v.setColorAt(0.6, QColor(60, 0, 0, 0));
+            v.setColorAt(1.0, QColor(60, 0, 0, int((panico - 60) * 3 * (0.6 + 0.4 * pulso))));
+            painter->fillRect(0, 0, w, h, v);
+        }
+        painter->setRenderHint(QPainter::Antialiasing, false);
+    }
 
     if (nivel->algunSoldadoPersigue() && juego->getEstado() == EstadoJuego::JUGANDO) {
         painter->fillRect(0, 0, w, h, QColor(140, 0, 0, 45));
