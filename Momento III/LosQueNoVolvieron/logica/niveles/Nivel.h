@@ -3,6 +3,7 @@
 
 #include <QRectF>
 #include <QList>
+#include <QPointF>
 
 class Carlos;
 class Soldado;
@@ -18,6 +19,14 @@ public:
 
     virtual void cargar() = 0;
     virtual void actualizar(double dt) = 0;
+
+    // Consultas del terreno (cada nivel las responde a su manera)
+    virtual bool esVegetacion(const QPointF &p) const { Q_UNUSED(p); return false; }
+    virtual bool esTrocha(const QPointF &p) const { Q_UNUSED(p); return false; }
+    virtual bool esEscondite(const QPointF &p) const { Q_UNUSED(p); return false; }
+
+    // Un ruido en 'origen' llega a los soldados que esten lo bastante cerca
+    void hacerRuido(const QPointF &origen, double intensidad);
 
     virtual bool haGanado() const;
     virtual bool haPerdido() const;

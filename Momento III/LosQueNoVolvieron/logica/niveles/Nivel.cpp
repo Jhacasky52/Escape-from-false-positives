@@ -9,6 +9,12 @@ Nivel::~Nivel()
     liberar();
 }
 
+void Nivel::hacerRuido(const QPointF &origen, double intensidad)
+{
+    for (Soldado *s : soldados)
+        s->escucharRuido(origen, intensidad);
+}
+
 bool Nivel::haGanado() const
 {
     return carlos != nullptr && meta.contains(carlos->getPosicion());

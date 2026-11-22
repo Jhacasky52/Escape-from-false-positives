@@ -1,14 +1,21 @@
 #include "NivelSelva.h"
 #include "entidades/Carlos.h"
 #include "entidades/Soldado.h"
+#include "entidades/Piedra.h"
 
 #include <QFile>
 #include <QTextStream>
 #include <QStringList>
 #include <QtMath>
+#include <QQueue>
 
 NivelSelva::NivelSelva(const QString &rutaMapa)
-    : rutaMapa(rutaMapa), columnas(0), filas(0) {}
+    : rutaMapa(rutaMapa), columnas(0), filas(0), temporizadorPasos(0.0) {}
+
+NivelSelva::~NivelSelva()
+{
+    qDeleteAll(piedras);
+}
 
 // ------------------------------------------------------------ Carga
 
@@ -77,15 +84,25 @@ void NivelSelva::leerMapa()
 void NivelSelva::cargar()
 {
     liberar();
+    qDeleteAll(piedras);
+    piedras.clear();
     capturado = false;
+    temporizadorPasos = 0.0;
     if (celdas.isEmpty())
         leerMapa();
 
     carlos = new Carlos(inicioCarlos);
     carlos->setLimites(limites.adjusted(16, 16, -16, -16));
+    carlos->setNivel(this);
 
-    for (const QVector<QPointF> &ruta : rutasSoldados)
-        soldados.append(new Soldado(ruta));
+    Planificador planificador = [this](const QPointF &a, const QPointF &b) {
+        return buscarCamino(a, b);
+    };
+    for (const QVector<QPointF> &ruta : rutasSoldados) {
+        Soldado *s = new Soldado(ruta);
+        s->setPlanificador(planificador);
+        soldados.append(s);
+    }
 }
 
 // ------------------------------------------------------------ Actualizacion
@@ -99,6 +116,32 @@ void NivelSelva::actualizar(double dt)
     carlos->actualizar(dt);
     moverConColision(carlos, anterior);
 
+    // Los pasos de Carlos suenan: caminando apenas, corriendo (o con panico) mucho
+    temporizadorPasos += dt;
+    if (temporizadorPasos >= 0.4) {
+        temporizadorPasos = 0.0;
+        if (carlos->getRuido() > 0.0)
+            hacerRuido(carlos->getPosicion(), carlos->getRuido() * 0.55);
+    }
+
+    // Piedras en el aire: si chocan con un arbol caen ahi; al caer hacen ruido
+    for (int i = piedras.size() - 1; i >= 0; --i) {
+        Piedra *p = piedras[i];
+        p->actualizar(dt);
+        bool lejosDeCarlos = celdaEnPunto(p->getPosicion()) != celdaEnPunto(p->getOrigen())
+                             || p->getAltura() > 0.0;
+        if (!p->cayo() && p->getAltura() < 40.0 && lejosDeCarlos && bloqueaLuz(p->getPosicion()))
+            p->detener();
+        if (p->cayo() && p->estaActiva()) {
+            hacerRuido(p->getPosicion(), p->intensidadRuido());
+            p->desactivar();
+        }
+    }
+    // Solo se guardan las ultimas piedras caidas (para dibujarlas un rato)
+    while (piedras.size() > 4 && !piedras.first()->estaActiva()) {
+        delete piedras.takeFirst();
+    }
+
     auto luz = [this](const QPointF &p) { return bloqueaLuz(p); };
 
     for (Soldado *s : soldados) {
@@ -108,10 +151,22 @@ void NivelSelva::actualizar(double dt)
 
         s->detecta(carlos, dt, luz);
 
-        // Lo atrapan si un soldado que lo persigue lo alcanza
-        if (s->getEstado() == EstadoSoldado::PERSIGUIENDO && s->colisionaCon(carlos))
+        // Lo atrapan si un soldado que lo persigue lo alcanza (escondido se salva)
+        if (s->getEstado() == EstadoSoldado::PERSIGUIENDO && !carlos->estaEscondido()
+            && s->colisionaCon(carlos))
             capturado = true;
     }
+}
+
+bool NivelSelva::lanzarPiedra(double fuerza)
+{
+    if (carlos == nullptr)
+        return false;
+    Piedra *p = carlos->lanzarPiedra(fuerza);
+    if (p == nullptr)
+        return false;
+    piedras.append(p);
+    return true;
 }
 
 // Si el personaje quedo dentro de un arbol, se intenta mover solo en x o
@@ -180,6 +235,78 @@ bool NivelSelva::carlosEnVegetacion() const
         return false;
     Celda c = celdaEnPunto(carlos->getPosicion());
     return c == Celda::MATORRAL || c == Celda::ESCONDITE;
+}
+
+bool NivelSelva::esVegetacion(const QPointF &p) const
+{
+    Celda c = celdaEnPunto(p);
+    return c == Celda::MATORRAL || c == Celda::ESCONDITE;
+}
+
+bool NivelSelva::esTrocha(const QPointF &p) const
+{
+    return celdaEnPunto(p) == Celda::TROCHA;
+}
+
+bool NivelSelva::esEscondite(const QPointF &p) const
+{
+    // Troncos huecos y matorrales sirven de escondite
+    return esVegetacion(p);
+}
+
+bool NivelSelva::esTransitable(int columna, int fila) const
+{
+    Celda c = celdaEn(columna, fila);
+    return c != Celda::ARBOL && c != Celda::RIO;
+}
+
+// Busqueda en anchura (BFS) sobre la cuadricula, con 8 vecinos y sin cortar
+// esquinas de arboles. Devuelve los centros de las celdas del camino.
+QVector<QPointF> NivelSelva::buscarCamino(const QPointF &desde, const QPointF &hasta) const
+{
+    QVector<QPointF> camino;
+    int c0 = qFloor(desde.x() / TAM_CELDA), f0 = qFloor(desde.y() / TAM_CELDA);
+    int c1 = qFloor(hasta.x() / TAM_CELDA), f1 = qFloor(hasta.y() / TAM_CELDA);
+    if (!esTransitable(c1, f1) || columnas == 0)
+        return camino;
+
+    auto indice = [this](int c, int f) { return f * columnas + c; };
+    QVector<int> anterior(columnas * filas, -2);   // -2 = no visitado
+    QQueue<int> cola;
+    anterior[indice(c0, f0)] = -1;
+    cola.enqueue(indice(c0, f0));
+
+    const int dc[8] = {1, -1, 0, 0, 1, 1, -1, -1};
+    const int df[8] = {0, 0, 1, -1, 1, -1, 1, -1};
+    bool encontrado = false;
+
+    while (!cola.isEmpty()) {
+        int actual = cola.dequeue();
+        int c = actual % columnas, f = actual / columnas;
+        if (c == c1 && f == f1) { encontrado = true; break; }
+        for (int k = 0; k < 8; ++k) {
+            int nc = c + dc[k], nf = f + df[k];
+            if (!esTransitable(nc, nf))
+                continue;
+            // En diagonal, las dos celdas laterales tambien deben estar libres
+            if (k >= 4 && (!esTransitable(c + dc[k], f) || !esTransitable(c, f + df[k])))
+                continue;
+            int vecino = indice(nc, nf);
+            if (anterior[vecino] != -2)
+                continue;
+            anterior[vecino] = actual;
+            cola.enqueue(vecino);
+        }
+    }
+    if (!encontrado)
+        return camino;
+
+    // Reconstruye el camino de atras hacia adelante
+    for (int i = indice(c1, f1); i != -1 && i != indice(c0, f0); i = anterior[i])
+        camino.prepend(centroCelda(i % columnas, i / columnas));
+    if (!camino.isEmpty())
+        camino.last() = hasta;   // termina en el punto exacto
+    return camino;
 }
 
 bool NivelSelva::algunSoldadoPersigue() const
