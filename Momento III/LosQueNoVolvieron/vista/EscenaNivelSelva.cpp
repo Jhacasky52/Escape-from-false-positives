@@ -8,6 +8,9 @@
 #include "entidades/Piedra.h"
 #include "rasgos/ConocedorDelMonte.h"
 #include "rasgos/Miedoso.h"
+#include "agente/Anima.h"
+#include "agente/Aprendizaje.h"
+#include "agente/Razonamiento.h"
 
 #include <QGraphicsPixmapItem>
 #include <QGraphicsRectItem>
@@ -25,7 +28,7 @@
 namespace {
 // Capas de dibujo (z): suelo < personajes < vegetacion < oscuridad < luz < interfaz
 const double Z_SUELO = 0, Z_ESCONDITE = 5, Z_SOMBRAS = 8, Z_PERSONAJES = 10, Z_VEGETACION = 20,
-             Z_PIEDRAS = 25, Z_OSCURIDAD = 30, Z_LUZ = 40, Z_BARRAS = 50;
+             Z_PIEDRAS = 25, Z_OSCURIDAD = 30, Z_LUZ = 40, Z_ANIMAS = 45, Z_BARRAS = 50;
 const int MAX_PIEDRAS_VISIBLES = 6;
 const double ESCALA_PERSONAJE = 0.5;   // sprites de 128 px -> 64 px
 
@@ -42,7 +45,7 @@ double grados(double radianes) { return qRadiansToDegrees(radianes); }
 
 EscenaNivelSelva::EscenaNivelSelva(Juego *juego, NivelSelva *nivel, QObject *parent)
     : EscenaJuego(parent), juego(juego), nivel(nivel), tiempoAnimacion(0.0),
-      mapaConstruido(false), cargando(false), carga(0.0), faseLatido(0.0), pulso(0.0),
+      mapaConstruido(false), modoDepuracion(false), cargando(false), carga(0.0), faseLatido(0.0), pulso(0.0),
       itemCarlos(nullptr), oscuridad(nullptr)
 {
     spCarlosIdle    = cargar(":/sprites/nivel1_selva/carlos_top_idle.png");
@@ -51,6 +54,10 @@ EscenaNivelSelva::EscenaNivelSelva(Juego *juego, NivelSelva *nivel, QObject *par
     spCarlosRun     = cargar(":/sprites/nivel1_selva/carlos_top_run.png");
     spCarlosThrow   = cargar(":/sprites/nivel1_selva/carlos_top_throw.png");
     spCarlosEscondido = cargar(":/sprites/nivel1_selva/carlos_top_escondido.png");
+    spAnimaBlanca = cargar(":/sprites/animas/anima_blanca_segura.png");
+    spAnimaRoja   = cargar(":/sprites/animas/anima_roja_peligro.png");
+    spAnimaTenue  = cargar(":/sprites/animas/anima_tenue_oculta.png");
+    spAnimaRamon  = cargar(":/sprites/animas/anima_ramon.png");
     spPiedra[0] = cargar(":/sprites/nivel1_selva/piedra_altura_0.png");
     spPiedra[1] = cargar(":/sprites/nivel1_selva/piedra_altura_1.png");
     spPiedra[2] = cargar(":/sprites/nivel1_selva/piedra_altura_2.png");
@@ -162,6 +169,8 @@ void EscenaNivelSelva::crearSpritesEntidades()
     qDeleteAll(itemsConos);
     qDeleteAll(barrasSospecha);
     qDeleteAll(signosSoldados);
+    qDeleteAll(itemsAnimas);
+    itemsAnimas.clear();
     itemsSoldados.clear();
     itemsConos.clear();
     barrasSospecha.clear();
@@ -173,6 +182,14 @@ void EscenaNivelSelva::crearSpritesEntidades()
     itemCarlos->setOffset(-64, -64);
     itemCarlos->setScale(ESCALA_PERSONAJE);
     itemCarlos->setZValue(Z_PERSONAJES + 1);
+
+    // Las animas son luz: se dibujan por encima de la oscuridad
+    for (int i = 0; i < nivel->getAnimas().size(); ++i) {
+        QGraphicsPixmapItem *a = addPixmap(spAnimaBlanca);
+        a->setOffset(-32, -32);
+        a->setZValue(Z_ANIMAS);
+        itemsAnimas.append(a);
+    }
 
     QPixmap cono = cargar(":/sprites/nivel1_selva/cono_linterna.png");
     for (int i = 0; i < nivel->getSoldados().size(); ++i) {
@@ -267,6 +284,8 @@ void EscenaNivelSelva::teclaPulsada(int tecla)
                && carlos != nullptr && carlos->puedeLanzar()) {
         cargando = true;
         carga = 0.0;
+    } else if (tecla == Qt::Key_F1) {
+        modoDepuracion = !modoDepuracion;
     } else if (tecla == Qt::Key_E && estado == EstadoJuego::JUGANDO && carlos != nullptr) {
         if (carlos->estaEscondido())
             carlos->salirDelEscondite();
@@ -341,6 +360,7 @@ void EscenaNivelSelva::actualizarVista()
     }
 
     actualizarPiedras();
+    actualizarAnimas();
 
     // --- Oscuridad: transparente alrededor de Carlos, negra lejos ---
     QRadialGradient g(carlos->getPosicion(), 330);
@@ -378,6 +398,70 @@ void EscenaNivelSelva::actualizarPiedras()
     }
 }
 
+void EscenaNivelSelva::actualizarAnimas()
+{
+    const QList<Anima *> &animas = nivel->getAnimas();
+    for (int i = 0; i < animas.size() && i < itemsAnimas.size(); ++i) {
+        const Anima *a = animas[i];
+        QGraphicsPixmapItem *item = itemsAnimas[i];
+        const QPixmap *p = &spAnimaBlanca;
+        switch (a->getColor()) {
+        case ColorAnima::ROJA:  p = &spAnimaRoja; break;
+        case ColorAnima::TENUE: p = &spAnimaTenue; break;
+        case ColorAnima::RAMON: p = &spAnimaRamon; break;
+        default: break;
+        }
+        if (item->pixmap().cacheKey() != p->cacheKey()) {
+            item->setPixmap(*p);
+            item->setOffset(-p->width() / 2.0, -p->height() / 2.0);
+        }
+        item->setPos(a->posicionDibujo());
+        item->setOpacity(a->esVisible() ? a->getBrillo() : 0.0);
+        item->setScale(0.7 + 0.15 * a->getBrillo());
+    }
+}
+
+// Modo depuracion (F1): muestra el razonamiento de las animas sobre el mapa
+void EscenaNivelSelva::dibujarDepuracion(QPainter *painter)
+{
+    const double T = NivelSelva::TAM_CELDA;
+    Aprendizaje *mem = nivel->getMemoria();
+
+    // Peligro aprendido (persiste entre intentos): cuadros rojos
+    if (mem != nullptr) {
+        for (auto it = mem->getMapaPeligro().cbegin(); it != mem->getMapaPeligro().cend(); ++it) {
+            double v = mem->peligroAprendido(it.key());
+            painter->fillRect(QRectF(it.key().x() * T, it.key().y() * T, T, T),
+                              QColor(220, 30, 30, int(40 + 120 * v)));
+        }
+    }
+    // Riesgo que calculo la primera anima en su ultima decision: verde bajo, rojo alto
+    if (!nivel->getAnimas().isEmpty()) {
+        const QMap<QPoint, double> &riesgo = nivel->getAnimas().first()->getRazonamiento()->getUltimoRiesgo();
+        QFont f = painter->font();
+        f.setPointSize(8);
+        painter->setFont(f);
+        for (auto it = riesgo.cbegin(); it != riesgo.cend(); ++it) {
+            double r = qBound(-0.5, it.value(), 2.0);
+            double t = (r + 0.5) / 2.5;   // 0..1
+            QRectF celda(it.key().x() * T + 6, it.key().y() * T + 6, T - 12, T - 12);
+            painter->setPen(QPen(QColor(int(255 * t), int(255 * (1 - t)), 60, 220), 2));
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRect(celda);
+            painter->drawText(celda, Qt::AlignCenter, QString::number(it.value(), 'f', 2));
+        }
+    }
+    // Linea de cada anima a su destino
+    const char *nombres[] = {"GUIAR", "ADVERTIR", "OCULTARSE", "CALMAR"};
+    for (const Anima *a : nivel->getAnimas()) {
+        const Decision &d = a->getDecision();
+        painter->setPen(QPen(QColor(200, 220, 255, 200), 1, Qt::DashLine));
+        painter->drawLine(a->getPosicion(), d.destino);
+        painter->setPen(QColor(230, 240, 255));
+        painter->drawText(a->getPosicion() + QPointF(14, -10), nombres[static_cast<int>(d.tipo)]);
+    }
+}
+
 // Interfaz dibujada encima de todo, en coordenadas de la pantalla
 void EscenaNivelSelva::drawForeground(QPainter *painter, const QRectF &rect)
 {
@@ -387,6 +471,13 @@ void EscenaNivelSelva::drawForeground(QPainter *painter, const QRectF &rect)
     QWidget *pantalla = views().first()->viewport();
     const int w = pantalla->width(), h = pantalla->height();
 
+    // En coordenadas del mundo: modo depuracion
+    if (modoDepuracion) {
+        painter->save();
+        dibujarDepuracion(painter);
+        painter->restore();
+    }
+
     painter->save();
     painter->resetTransform();
 
@@ -395,7 +486,14 @@ void EscenaNivelSelva::drawForeground(QPainter *painter, const QRectF &rect)
     painter->setFont(f);
     painter->setPen(QColor(220, 220, 200));
     painter->drawText(12, 22, "Nivel 1: La selva   |   llega al rio (derecha) sin que te atrapen");
-    painter->drawText(12, h - 12, "WASD mover  Shift correr  Espacio (mantener) lanzar piedra  E esconderse  P pausa  F9 fisicas");
+    painter->drawText(12, h - 12, "WASD mover  Shift correr  Espacio (mantener) lanzar  E esconderse  P pausa  F1 animas  F9 fisicas");
+    if (modoDepuracion && nivel->getMemoria() != nullptr) {
+        Aprendizaje *m = nivel->getMemoria();
+        painter->drawText(12, 44, QString("Animas: obediencia %1  insistencia %2  capturas recordadas %3")
+                                      .arg(m->getTasaObediencia(), 0, 'f', 2)
+                                      .arg(m->insistencia(), 0, 'f', 2)
+                                      .arg(m->numeroCapturas()));
+    }
 
     Carlos *carlos = nivel->getCarlos();
     if (carlos != nullptr) {

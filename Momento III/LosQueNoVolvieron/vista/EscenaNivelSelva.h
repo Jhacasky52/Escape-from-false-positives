@@ -34,6 +34,8 @@ private:
     void construirMapa();
     void crearSpritesEntidades();
     void actualizarPiedras();
+    void actualizarAnimas();
+    void dibujarDepuracion(QPainter *painter);
     void actualizarLatidos(double dt);
 
     Juego *juego;
@@ -47,6 +49,8 @@ private:
 
     QPixmap spCarlosIdle, spCarlosWalk1, spCarlosWalk2, spCarlosRun, spCarlosThrow, spCarlosEscondido;
     QPixmap spPiedra[3];
+    QPixmap spAnimaBlanca, spAnimaRoja, spAnimaTenue, spAnimaRamon;
+    bool modoDepuracion;    // F1: muestra lo que piensan las animas
     QPixmap spSoldadoWalk1, spSoldadoWalk2, spSoldadoAlerta;
 
     QGraphicsPixmapItem *itemCarlos;
@@ -55,6 +59,7 @@ private:
     QVector<QGraphicsRectItem *> barrasSospecha;
     QVector<QGraphicsSimpleTextItem *> signosSoldados;   // "?" al investigar
     QVector<QGraphicsPixmapItem *> itemsPiedras;
+    QVector<QGraphicsPixmapItem *> itemsAnimas;
     QVector<QGraphicsEllipseItem *> sombrasPiedras;
 #ifdef HAY_MULTIMEDIA
     QSoundEffect *sonidoLatido;
