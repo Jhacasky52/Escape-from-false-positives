@@ -1,18 +1,24 @@
 #include "Juego.h"
 #include "niveles/Nivel.h"
+#include "entidades/Carlos.h"
+#include "agente/Aprendizaje.h"
 
-Juego::Juego() : indiceNivel(0), estado(EstadoJuego::PAUSADO) {}
+Juego::Juego()
+    : indiceNivel(0), estado(EstadoJuego::PAUSADO), memoriaAnimas(new Aprendizaje()) {}
 
 Juego::~Juego()
 {
     qDeleteAll(niveles);
     niveles.clear();
+    delete memoriaAnimas;
 }
 
 void Juego::agregarNivel(Nivel *nivel)
 {
-    if (nivel != nullptr)
+    if (nivel != nullptr) {
+        nivel->setMemoria(memoriaAnimas);
         niveles.append(nivel);
+    }
 }
 
 void Juego::iniciar()
@@ -34,8 +40,12 @@ void Juego::actualizar(double dt)
 
     n->actualizar(dt);
 
-    if (n->haPerdido())
+    if (n->haPerdido()) {
         estado = EstadoJuego::CAPTURADO;
+        // Las animas recuerdan donde lo atraparon para evitar esa zona la proxima vez
+        if (n->getCarlos() != nullptr)
+            memoriaAnimas->registrarCaptura(n->celdaDe(n->getCarlos()->getPosicion()));
+    }
     else if (n->haGanado())
         estado = (indiceNivel + 1 < niveles.size()) ? EstadoJuego::NIVEL_SUPERADO
                                                     : EstadoJuego::FINAL;

@@ -44,6 +44,8 @@ public:
     bool esVegetacion(const QPointF &p) const override;
     bool esTrocha(const QPointF &p) const override;
     bool esEscondite(const QPointF &p) const override;
+    bool esTransitable(const QPointF &p) const override;
+    double tamCelda() const override { return TAM_CELDA; }
 
     // Carlos lanza una piedra con fuerza 0..1 (false si aun no puede)
     bool lanzarPiedra(double fuerza);

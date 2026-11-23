@@ -1,8 +1,10 @@
 #include "Nivel.h"
 #include "entidades/Carlos.h"
 #include "entidades/Soldado.h"
+#include "agente/Anima.h"
+#include <QtMath>
 
-Nivel::Nivel() : carlos(nullptr), capturado(false) {}
+Nivel::Nivel() : carlos(nullptr), memoria(nullptr), capturado(false) {}
 
 Nivel::~Nivel()
 {
@@ -38,4 +40,22 @@ void Nivel::liberar()
     carlos = nullptr;
     qDeleteAll(soldados);
     soldados.clear();
+    qDeleteAll(animas);
+    animas.clear();
+}
+
+void Nivel::actualizarAnimas(double dt)
+{
+    for (Anima *a : animas)
+        a->actualizar(dt, this);
+}
+
+QPoint Nivel::celdaDe(const QPointF &p) const
+{
+    return QPoint(qFloor(p.x() / tamCelda()), qFloor(p.y() / tamCelda()));
+}
+
+QPointF Nivel::centroDe(const QPoint &celda) const
+{
+    return QPointF((celda.x() + 0.5) * tamCelda(), (celda.y() + 0.5) * tamCelda());
 }

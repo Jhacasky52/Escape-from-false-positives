@@ -38,6 +38,14 @@ qt_add_executable(LosQueNoVolvieron
     logica/rasgos/ConocedorDelMonte.h logica/rasgos/ConocedorDelMonte.cpp
     logica/rasgos/Miedoso.h           logica/rasgos/Miedoso.cpp
 
+    logica/agente/Estimulo.h          logica/agente/Decision.h
+    logica/agente/Percepcion.h        logica/agente/Percepcion.cpp
+    logica/agente/Razonamiento.h      logica/agente/Razonamiento.cpp
+    logica/agente/Accion.h            logica/agente/Accion.cpp
+    logica/agente/Aprendizaje.h       logica/agente/Aprendizaje.cpp
+    logica/agente/Anima.h             logica/agente/Anima.cpp
+    logica/agente/AnimaRamon.h        logica/agente/AnimaRamon.cpp
+
     logica/fisica/ModeloFisico.h          logica/fisica/ModeloFisico.cpp
     logica/fisica/MovimientoParabolico.h  logica/fisica/MovimientoParabolico.cpp
     logica/fisica/MovimientoPendular.h    logica/fisica/MovimientoPendular.cpp
@@ -103,6 +111,14 @@ qt_add_executable(pruebas_nivel
     logica/rasgos/Rasgo.cpp
     logica/rasgos/ConocedorDelMonte.cpp
     logica/rasgos/Miedoso.cpp
+    logica/agente/Percepcion.cpp
+    logica/agente/Razonamiento.cpp
+    logica/agente/Accion.cpp
+    logica/agente/Aprendizaje.cpp
+    logica/agente/Anima.cpp
+    logica/agente/AnimaRamon.cpp
+    logica/control/Juego.cpp
+    logica/fisica/MovimientoOscilatorio.cpp
     logica/fisica/ModeloFisico.cpp
     logica/fisica/MovimientoPendular.cpp
     logica/fisica/MovimientoParabolico.cpp
@@ -115,3 +131,38 @@ qt_add_resources(pruebas_nivel "mapas"
 target_include_directories(pruebas_nivel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/logica)
 target_link_libraries(pruebas_nivel PRIVATE Qt6::Core)
 set_target_properties(pruebas_nivel PROPERTIES WIN32_EXECUTABLE OFF MACOSX_BUNDLE OFF)
+
+# ---- Pruebas del agente inteligente (animas) (consola, sin graficos) ----
+qt_add_executable(pruebas_animas
+    pruebas/pruebas_animas.cpp
+    logica/niveles/Nivel.cpp
+    logica/niveles/NivelSelva.cpp
+    logica/entidades/Entidad.cpp
+    logica/entidades/Personaje.cpp
+    logica/entidades/Carlos.cpp
+    logica/entidades/Soldado.cpp
+    logica/entidades/Linterna.cpp
+    logica/entidades/Piedra.cpp
+    logica/rasgos/Rasgo.cpp
+    logica/rasgos/ConocedorDelMonte.cpp
+    logica/rasgos/Miedoso.cpp
+    logica/agente/Percepcion.cpp
+    logica/agente/Razonamiento.cpp
+    logica/agente/Accion.cpp
+    logica/agente/Aprendizaje.cpp
+    logica/agente/Anima.cpp
+    logica/agente/AnimaRamon.cpp
+    logica/control/Juego.cpp
+    logica/fisica/MovimientoOscilatorio.cpp
+    logica/fisica/ModeloFisico.cpp
+    logica/fisica/MovimientoPendular.cpp
+    logica/fisica/MovimientoParabolico.cpp
+)
+qt_add_resources(pruebas_animas "mapas_animas"
+    PREFIX "/"
+    BASE recursos
+    FILES recursos/mapas/selva.txt
+)
+target_include_directories(pruebas_animas PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/logica)
+target_link_libraries(pruebas_animas PRIVATE Qt6::Core)
+set_target_properties(pruebas_animas PROPERTIES WIN32_EXECUTABLE OFF MACOSX_BUNDLE OFF)

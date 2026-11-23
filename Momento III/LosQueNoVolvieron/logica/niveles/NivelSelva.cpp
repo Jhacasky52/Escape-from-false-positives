@@ -2,6 +2,8 @@
 #include "entidades/Carlos.h"
 #include "entidades/Soldado.h"
 #include "entidades/Piedra.h"
+#include "agente/Anima.h"
+#include "agente/AnimaRamon.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -103,6 +105,11 @@ void NivelSelva::cargar()
         s->setPlanificador(planificador);
         soldados.append(s);
     }
+
+    // Tres animas de victimas y la de Ramon acompanan a Carlos desde el inicio
+    for (int i = 0; i < 3; ++i)
+        animas.append(new Anima(inicioCarlos + QPointF(40, -30 + 30 * i), memoria, i));
+    animas.append(new AnimaRamon(inicioCarlos + QPointF(-30, 0), memoria));
 }
 
 // ------------------------------------------------------------ Actualizacion
@@ -143,6 +150,8 @@ void NivelSelva::actualizar(double dt)
     }
 
     auto luz = [this](const QPointF &p) { return bloqueaLuz(p); };
+
+    actualizarAnimas(dt);
 
     for (Soldado *s : soldados) {
         QPointF antes = s->getPosicion();
@@ -252,6 +261,11 @@ bool NivelSelva::esEscondite(const QPointF &p) const
 {
     // Troncos huecos y matorrales sirven de escondite
     return esVegetacion(p);
+}
+
+bool NivelSelva::esTransitable(const QPointF &p) const
+{
+    return esTransitable(qFloor(p.x() / TAM_CELDA), qFloor(p.y() / TAM_CELDA));
 }
 
 bool NivelSelva::esTransitable(int columna, int fila) const
