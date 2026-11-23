@@ -9,9 +9,9 @@ guiado por las ánimas de las víctimas.
 1. En Qt Creator: **Archivo > Abrir archivo o proyecto** y elegir `CMakeLists.txt`.
 2. Seleccionar el kit de Qt 6 (por ejemplo *Desktop Qt 6.x MinGW 64-bit*) y pulsar **Configurar proyecto**.
 3. Ejecutar con el botón verde (objetivo `LosQueNoVolvieron`).
-4. Para correr las pruebas automáticas, cambiar el objetivo a `pruebas_fisica` o `pruebas_nivel` (abajo a la izquierda, icono del monitor) y ejecutar.
+4. Para correr las pruebas automáticas, cambiar el objetivo a `pruebas_fisica`, `pruebas_nivel` o `pruebas_animas` (abajo a la izquierda, icono del monitor) y ejecutar.
 
-## Estado actual: fase 3 (mecánicas completas del nivel 1)
+## Estado actual: fase 4 (las ánimas, agente inteligente)
 
 Al abrir el juego empieza el **nivel 1, la selva**: es de noche, la cámara sigue a Carlos y
 cuatro soldados patrullan con linternas. Si Carlos queda en la luz unos instantes, lo descubren
@@ -32,8 +32,26 @@ Los árboles bloquean el paso y la luz. El mapa se edita en `recursos/mapas/selv
 - **Latidos**: el corazón del HUD late a 60 + 1,2 × pánico lpm y se oye si Qt Multimedia está instalado
   (es opcional: sin ese módulo el juego compila igual, sin sonido).
 
+**Fase 4: las ánimas (agente inteligente).** Tres ánimas de víctimas y la de Ramón acompañan a Carlos.
+Cada una ejecuta en ciclo cuatro módulos separados (`logica/agente/`):
+
+1. **Percepción** (`Percepcion`): dentro de un radio lee la posición, ruido y pánico de Carlos, los
+   soldados, los conos de sus linternas y las celdas vecinas libres, y arma un `Estimulo`.
+2. **Razonamiento** (`Razonamiento`): calcula el riesgo de cada celda vecina,
+   `riesgo = w1·cercanía de soldados + w2·luz + w3·exposición + w4·peligro aprendido − w5·avance a la meta`,
+   y decide por prioridad: OCULTARSE (soldado a menos de 110 px) > ADVERTIR (riesgo alto donde está o
+   hacia donde va; señala el refugio más seguro) > CALMAR (pánico > 60) > GUIAR (celda de menor riesgo).
+3. **Acción** (`Accion`): se mueve hacia el destino con vaivén (`MovimientoOscilatorio`), cambia de color
+   (blanca = seguro, roja parpadeando = peligro, tenue = ocultarse) y, cerca de Carlos, le baja el pánico.
+4. **Aprendizaje** (`Aprendizaje`): mapa de peligro por celda (`QMap<QPoint,double>`) con las capturas y
+   los avistamientos de soldados, y la tasa de obediencia: si Carlos ignora las indicaciones, las ánimas
+   se vuelven más insistentes. Esta memoria la guarda `Juego`, así que **se conserva al reiniciar el nivel**.
+
+Ramón (`AnimaRamon`, luz cálida) solo aparece por momentos o cuando Carlos está aterrorizado.
+Con **F1** se ve el razonamiento: riesgo de cada celda, peligro aprendido en rojo y la decisión de cada ánima.
+
 Controles: WASD o flechas mover, Shift correr, Espacio (mantener) lanzar piedra, E esconderse,
-P pausa, Enter reintentar, F9 escena de prueba de físicas.
+P pausa, Enter reintentar, F1 ver el razonamiento de las ánimas, F9 escena de prueba de físicas.
 
 ### Escena de prueba de físicas (F9)
 
@@ -56,13 +74,14 @@ logica/            capa lógica (las clases del diagrama del Momento II, sin gr�
   niveles/         Nivel (abstracta), NivelSelva
   entidades/       Entidad, Personaje, Carlos, Soldado, Linterna, Piedra
   rasgos/          Rasgo, ConocedorDelMonte, Miedoso
+  agente/          Anima, AnimaRamon, Percepcion, Razonamiento, Accion, Aprendizaje, Estimulo, Decision
   fisica/          ModeloFisico y los 4 movimientos
 vista/             capa gráfica de Qt
   EscenaJuego      bucle de juego con paso fijo (1/60 s)
   EscenaNivelSelva    gráficos del nivel 1: mapa, sprites, oscuridad, cámara, HUD
   EscenaPruebaFisica  escena de prueba de la fase 1
   VentanaPrincipal
-pruebas/           pruebas automáticas de las físicas y de las reglas del nivel 1
+pruebas/           pruebas automáticas: físicas, reglas del nivel 1 y agente (ánimas)
 recursos/sprites/  sprites (se compilan dentro del ejecutable como :/sprites/...)
 recursos/mapas/    mapas de los niveles en texto
 recursos/sonidos/  sonidos (latido)
@@ -77,6 +96,6 @@ y la escena solo lee esos datos en cada cuadro para mover los sprites.
 - [x] Fase 1: clases base y las 4 físicas
 - [x] Fase 2: nivel 1 jugable (patrullas, linternas, captura, meta)
 - [x] Fase 3: piedras con ruido, escondites, pánico y latidos
-- [ ] Fase 4: ánimas (percepción, razonamiento, acción, aprendizaje)
+- [x] Fase 4: ánimas (percepción, razonamiento, acción, aprendizaje)
 - [ ] Fase 5: nivel 2, el río
 - [ ] Fase 6: menús, guardar partida, final con Ramón, sonido
