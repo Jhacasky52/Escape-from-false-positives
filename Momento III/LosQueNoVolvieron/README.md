@@ -9,9 +9,9 @@ guiado por las ánimas de las víctimas.
 1. En Qt Creator: **Archivo > Abrir archivo o proyecto** y elegir `CMakeLists.txt`.
 2. Seleccionar el kit de Qt 6 (por ejemplo *Desktop Qt 6.x MinGW 64-bit*) y pulsar **Configurar proyecto**.
 3. Ejecutar con el botón verde (objetivo `LosQueNoVolvieron`).
-4. Para correr las pruebas automáticas, cambiar el objetivo a `pruebas_fisica`, `pruebas_nivel` o `pruebas_animas` (abajo a la izquierda, icono del monitor) y ejecutar.
+4. Para correr las pruebas automáticas, cambiar el objetivo a `pruebas_fisica`, `pruebas_nivel`, `pruebas_animas` o `pruebas_rio` (abajo a la izquierda, icono del monitor) y ejecutar.
 
-## Estado actual: fase 4 (las ánimas, agente inteligente)
+## Estado actual: fase 5 (nivel 2, el río)
 
 Al abrir el juego empieza el **nivel 1, la selva**: es de noche, la cámara sigue a Carlos y
 cuatro soldados patrullan con linternas. Si Carlos queda en la luz unos instantes, lo descubren
@@ -53,6 +53,30 @@ Con **F1** se ve el razonamiento: riesgo de cada celda, peligro aprendido en roj
 Controles: WASD o flechas mover, Shift correr, Espacio (mantener) lanzar piedra, E esconderse,
 P pausa, Enter reintentar, F1 ver el razonamiento de las ánimas, F9 escena de prueba de físicas.
 
+**Fase 5: nivel 2, el río.** Al llegar al río aparece "Presiona Enter para continuar" y empieza el
+segundo nivel, visto de lado. Carlos tiene que cruzar río arriba (hacia la derecha) hasta la otra
+orilla mientras la corriente lo empuja hacia atrás (`logica/niveles/NivelRio`):
+
+- **Nadar** (A/D): `MovimientoFluido`, m·dv/dt = F + k·(v_río − v) − b·v con m = 1, k = 3, b = 1 y
+  F = 480. Sin nadar la corriente lo arrastra; nadando avanza a (480 − 3·70)/4 ≈ 67 px/s.
+- **Bucear** (S): la flotación (−9·profundidad) lo devuelve a la superficie; bajo los 30 px las
+  linternas no lo ven, pero gasta aire (8 s). En la superficie o sobre una roca respira.
+- **Rocas y bancos de arena** (W junto a una para subirse): ahí la corriente no lo mueve y respira,
+  pero queda a la vista. Las rocas tapan la luz.
+- **Creciente**: cada 45 s el río crece (indicador arriba a la izquierda). El agua sube 50 px, tapa
+  las rocas bajas y los bancos (si Carlos está encima, cae al agua) y la corriente pasa de 70 a 150 px/s.
+  Solo las rocas altas y las orillas siguen secas.
+- **Troncos y escombros** bajan con la corriente y suben y bajan con el oleaje (`MovimientoOscilatorio`,
+  clase `Tronco`). Si lo golpean lo empujan río abajo; buceando pasa por debajo.
+- **Soldados en la orilla de enfrente**: patrullan con la linterna apuntando al agua (péndulo). Si lo
+  ven, lo atrapan. Si hace ruido al nadar se acercan a revisar.
+- **Ánimas**: descansan sobre las rocas altas. Además de las reglas de la fase 4, cuando faltan menos
+  de 6 s para la creciente y Carlos está en el agua, se ponen rojas y señalan la roca alta más cercana.
+- **Se pierde** si lo ven, si se queda sin aire o si la corriente lo arrastra 560 px hacia atrás
+  (la franja oscura de la izquierda). Se gana al llegar a la otra orilla.
+
+Controles del río: A/D o flechas nadar, S bucear, W subirse a una roca, P pausa, Enter reintentar, F1 ánimas.
+
 ### Escena de prueba de físicas (F9)
 
 Muestra las cuatro físicas funcionando:
@@ -71,17 +95,18 @@ Controles de la prueba: WASD mover, Shift correr, Espacio lanzar, J nadar, R rei
 ```
 logica/            capa lógica (las clases del diagrama del Momento II, sin gráficos)
   control/         Juego, EstadoJuego
-  niveles/         Nivel (abstracta), NivelSelva
-  entidades/       Entidad, Personaje, Carlos, Soldado, Linterna, Piedra
+  niveles/         Nivel (abstracta), NivelSelva, NivelRio
+  entidades/       Entidad, Personaje, Carlos, Soldado, Linterna, Piedra, Tronco
   rasgos/          Rasgo, ConocedorDelMonte, Miedoso
   agente/          Anima, AnimaRamon, Percepcion, Razonamiento, Accion, Aprendizaje, Estimulo, Decision
   fisica/          ModeloFisico y los 4 movimientos
 vista/             capa gráfica de Qt
   EscenaJuego      bucle de juego con paso fijo (1/60 s)
   EscenaNivelSelva    gráficos del nivel 1: mapa, sprites, oscuridad, cámara, HUD
+  EscenaNivelRio      gráficos del nivel 2: fondo con paralaje, agua, rocas, troncos, aire, creciente
   EscenaPruebaFisica  escena de prueba de la fase 1
   VentanaPrincipal
-pruebas/           pruebas automáticas: físicas, reglas del nivel 1 y agente (ánimas)
+pruebas/           pruebas automáticas: físicas, nivel 1, agente (ánimas) y nivel 2 (río)
 recursos/sprites/  sprites (se compilan dentro del ejecutable como :/sprites/...)
 recursos/mapas/    mapas de los niveles en texto
 recursos/sonidos/  sonidos (latido)
@@ -97,5 +122,5 @@ y la escena solo lee esos datos en cada cuadro para mover los sprites.
 - [x] Fase 2: nivel 1 jugable (patrullas, linternas, captura, meta)
 - [x] Fase 3: piedras con ruido, escondites, pánico y latidos
 - [x] Fase 4: ánimas (percepción, razonamiento, acción, aprendizaje)
-- [ ] Fase 5: nivel 2, el río
+- [x] Fase 5: nivel 2, el río
 - [ ] Fase 6: menús, guardar partida, final con Ramón, sonido
