@@ -23,7 +23,9 @@ public:
     ~Juego();
 
     void agregarNivel(Nivel *nivel);   // Juego pasa a ser el dueno
-    void iniciar();
+    void iniciar();                     // empieza en el primer nivel
+    void iniciarEn(int indice);         // empieza en el nivel 'indice' (al cargar la partida)
+    void nuevaPartida();                // borra lo aprendido por las animas y empieza de cero
     void actualizar(double dt);
     void pasarAlSiguienteNivel();
     void reiniciarNivel();
@@ -32,6 +34,7 @@ public:
     Nivel *nivelActual() const;
     Aprendizaje *getMemoriaAnimas() const { return memoriaAnimas; }
     int getIndiceNivel() const { return indiceNivel; }
+    int numeroNiveles() const { return niveles.size(); }
     EstadoJuego getEstado() const { return estado; }
 
 private:

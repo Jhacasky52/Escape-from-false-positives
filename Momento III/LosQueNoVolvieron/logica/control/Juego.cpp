@@ -23,10 +23,21 @@ void Juego::agregarNivel(Nivel *nivel)
 
 void Juego::iniciar()
 {
-    indiceNivel = 0;
+    iniciarEn(0);
+}
+
+void Juego::iniciarEn(int indice)
+{
+    indiceNivel = qBound(0, indice, qMax(0, static_cast<int>(niveles.size()) - 1));
     if (Nivel *n = nivelActual())
         n->cargar();
     estado = EstadoJuego::JUGANDO;
+}
+
+void Juego::nuevaPartida()
+{
+    memoriaAnimas->reiniciar();
+    iniciarEn(0);
 }
 
 void Juego::actualizar(double dt)

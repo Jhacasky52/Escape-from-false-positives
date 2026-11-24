@@ -24,6 +24,7 @@ qt_add_executable(LosQueNoVolvieron
 
     # ---- Capa logica ----
     logica/control/Juego.h            logica/control/Juego.cpp
+    logica/control/Partida.h          logica/control/Partida.cpp
     logica/niveles/Nivel.h            logica/niveles/Nivel.cpp
     logica/niveles/NivelSelva.h       logica/niveles/NivelSelva.cpp
     logica/niveles/NivelRio.h         logica/niveles/NivelRio.cpp
@@ -209,3 +210,42 @@ qt_add_resources(pruebas_rio "mapas_rio"
 target_include_directories(pruebas_rio PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/logica)
 target_link_libraries(pruebas_rio PRIVATE Qt6::Core)
 set_target_properties(pruebas_rio PROPERTIES WIN32_EXECUTABLE OFF MACOSX_BUNDLE OFF)
+
+# ---- Pruebas de guardar y cargar la partida (consola, sin graficos) ----
+qt_add_executable(pruebas_partida
+    pruebas/pruebas_partida.cpp
+    logica/control/Partida.cpp
+    logica/niveles/Nivel.cpp
+    logica/niveles/NivelSelva.cpp
+    logica/niveles/NivelRio.cpp
+    logica/entidades/Entidad.cpp
+    logica/entidades/Personaje.cpp
+    logica/entidades/Carlos.cpp
+    logica/entidades/Soldado.cpp
+    logica/entidades/Linterna.cpp
+    logica/entidades/Piedra.cpp
+    logica/entidades/Tronco.cpp
+    logica/rasgos/Rasgo.cpp
+    logica/rasgos/ConocedorDelMonte.cpp
+    logica/rasgos/Miedoso.cpp
+    logica/agente/Percepcion.cpp
+    logica/agente/Razonamiento.cpp
+    logica/agente/Accion.cpp
+    logica/agente/Aprendizaje.cpp
+    logica/agente/Anima.cpp
+    logica/agente/AnimaRamon.cpp
+    logica/control/Juego.cpp
+    logica/fisica/ModeloFisico.cpp
+    logica/fisica/MovimientoOscilatorio.cpp
+    logica/fisica/MovimientoPendular.cpp
+    logica/fisica/MovimientoParabolico.cpp
+    logica/fisica/MovimientoFluido.cpp
+)
+qt_add_resources(pruebas_partida "mapas_partida"
+    PREFIX "/"
+    BASE recursos
+    FILES recursos/mapas/selva.txt
+)
+target_include_directories(pruebas_partida PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/logica)
+target_link_libraries(pruebas_partida PRIVATE Qt6::Core)
+set_target_properties(pruebas_partida PROPERTIES WIN32_EXECUTABLE OFF MACOSX_BUNDLE OFF)

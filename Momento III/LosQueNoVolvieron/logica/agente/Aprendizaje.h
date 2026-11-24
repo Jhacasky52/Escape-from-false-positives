@@ -6,6 +6,7 @@
 #include <QPoint>
 #include <QVector>
 #include <QQueue>
+#include <QtGlobal>
 
 // QMap necesita poder ordenar las llaves: se ordenan las celdas por fila y columna
 inline bool operator<(const QPoint &a, const QPoint &b)
@@ -32,8 +33,11 @@ public:
     int numeroCapturas() const { return capturas.size(); }
     const QMap<QPoint, double> &getMapaPeligro() const { return mapaPeligro; }
 
-    // Para guardar partida (fase 6)
+    // Para guardar y cargar la partida (clase Partida)
     void setMapaPeligro(const QMap<QPoint, double> &m) { mapaPeligro = m; }
+    const QVector<QPoint> &getCapturas() const { return capturas; }
+    void setCapturas(const QVector<QPoint> &c) { capturas = c; }
+    void setTasaObediencia(double t) { tasaObediencia = qBound(0.0, t, 1.0); }
     void reiniciar();
 
 private:
