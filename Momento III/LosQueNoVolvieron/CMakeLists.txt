@@ -26,6 +26,7 @@ qt_add_executable(LosQueNoVolvieron
     logica/control/Juego.h            logica/control/Juego.cpp
     logica/niveles/Nivel.h            logica/niveles/Nivel.cpp
     logica/niveles/NivelSelva.h       logica/niveles/NivelSelva.cpp
+    logica/niveles/NivelRio.h         logica/niveles/NivelRio.cpp
 
     logica/entidades/Entidad.h        logica/entidades/Entidad.cpp
     logica/entidades/Personaje.h      logica/entidades/Personaje.cpp
@@ -33,6 +34,7 @@ qt_add_executable(LosQueNoVolvieron
     logica/entidades/Soldado.h        logica/entidades/Soldado.cpp
     logica/entidades/Linterna.h       logica/entidades/Linterna.cpp
     logica/entidades/Piedra.h         logica/entidades/Piedra.cpp
+    logica/entidades/Tronco.h         logica/entidades/Tronco.cpp
 
     logica/rasgos/Rasgo.h             logica/rasgos/Rasgo.cpp
     logica/rasgos/ConocedorDelMonte.h logica/rasgos/ConocedorDelMonte.cpp
@@ -168,3 +170,41 @@ qt_add_resources(pruebas_animas "mapas_animas"
 target_include_directories(pruebas_animas PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/logica)
 target_link_libraries(pruebas_animas PRIVATE Qt6::Core)
 set_target_properties(pruebas_animas PROPERTIES WIN32_EXECUTABLE OFF MACOSX_BUNDLE OFF)
+
+# ---- Pruebas del nivel 2, el rio (consola, sin graficos) ----
+qt_add_executable(pruebas_rio
+    pruebas/pruebas_rio.cpp
+    logica/niveles/Nivel.cpp
+    logica/niveles/NivelSelva.cpp
+    logica/niveles/NivelRio.cpp
+    logica/entidades/Entidad.cpp
+    logica/entidades/Personaje.cpp
+    logica/entidades/Carlos.cpp
+    logica/entidades/Soldado.cpp
+    logica/entidades/Linterna.cpp
+    logica/entidades/Piedra.cpp
+    logica/entidades/Tronco.cpp
+    logica/rasgos/Rasgo.cpp
+    logica/rasgos/ConocedorDelMonte.cpp
+    logica/rasgos/Miedoso.cpp
+    logica/agente/Percepcion.cpp
+    logica/agente/Razonamiento.cpp
+    logica/agente/Accion.cpp
+    logica/agente/Aprendizaje.cpp
+    logica/agente/Anima.cpp
+    logica/agente/AnimaRamon.cpp
+    logica/control/Juego.cpp
+    logica/fisica/ModeloFisico.cpp
+    logica/fisica/MovimientoOscilatorio.cpp
+    logica/fisica/MovimientoPendular.cpp
+    logica/fisica/MovimientoParabolico.cpp
+    logica/fisica/MovimientoFluido.cpp
+)
+qt_add_resources(pruebas_rio "mapas_rio"
+    PREFIX "/"
+    BASE recursos
+    FILES recursos/mapas/selva.txt
+)
+target_include_directories(pruebas_rio PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/logica)
+target_link_libraries(pruebas_rio PRIVATE Qt6::Core)
+set_target_properties(pruebas_rio PROPERTIES WIN32_EXECUTABLE OFF MACOSX_BUNDLE OFF)
