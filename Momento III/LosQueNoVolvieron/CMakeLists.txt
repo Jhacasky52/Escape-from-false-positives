@@ -122,6 +122,7 @@ qt_add_executable(pruebas_nivel
     logica/fisica/ModeloFisico.cpp
     logica/fisica/MovimientoPendular.cpp
     logica/fisica/MovimientoParabolico.cpp
+    logica/fisica/MovimientoFluido.cpp
 )
 qt_add_resources(pruebas_nivel "mapas"
     PREFIX "/"
@@ -157,6 +158,7 @@ qt_add_executable(pruebas_animas
     logica/fisica/ModeloFisico.cpp
     logica/fisica/MovimientoPendular.cpp
     logica/fisica/MovimientoParabolico.cpp
+    logica/fisica/MovimientoFluido.cpp
 )
 qt_add_resources(pruebas_animas "mapas_animas"
     PREFIX "/"

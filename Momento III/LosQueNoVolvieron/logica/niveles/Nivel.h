@@ -29,6 +29,13 @@ public:
     virtual bool esEscondite(const QPointF &p) const { Q_UNUSED(p); return false; }
     virtual bool esTransitable(const QPointF &p) const { return limites.contains(p); }
 
+    // Nivel del rio (fase 5). En la selva no hay corriente ni creciente.
+    virtual double corrienteEn(const QPointF &p) const { Q_UNUSED(p); return 0.0; }
+    virtual double tiempoParaCreciente() const { return -1.0; }   // -1 = no aplica
+    // Refugio seco mas cercano (roca alta u orilla); false si el nivel no tiene
+    virtual bool refugioCercano(const QPointF &p, QPointF &refugio) const
+    { Q_UNUSED(p); Q_UNUSED(refugio); return false; }
+
     // Cuadricula comun (la usan las animas para razonar por zonas)
     virtual double tamCelda() const { return 64.0; }
     QPoint celdaDe(const QPointF &p) const;

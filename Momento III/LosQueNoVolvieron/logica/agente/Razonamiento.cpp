@@ -135,6 +135,16 @@ Decision Razonamiento::decidir(const Estimulo &e, const Aprendizaje *mem)
         d.urgencia = qMin(1.0, peligro / 2.0 + insistencia * 0.5);
         return d;
     }
+    // Prioridad 2b (rio): se acerca la creciente y Carlos esta en el agua ->
+    // advertir y senalar la roca alta u orilla seca mas cercana
+    if (e.corriente != 0.0 && e.hayRefugio && e.tiempoCreciente >= 0.0
+        && e.tiempoCreciente < AVISO_CRECIENTE) {
+        d.tipo = TipoDecision::ADVERTIR;
+        d.destino = e.refugio;
+        d.celdaDestino = QPoint(qFloor(e.refugio.x() / e.tamCelda), qFloor(e.refugio.y() / e.tamCelda));
+        d.urgencia = qMin(1.0, 1.0 - e.tiempoCreciente / AVISO_CRECIENTE + insistencia * 0.5);
+        return d;
+    }
     // Prioridad 3: panico alto -> ir a calmarlo
     if (e.panicoCarlos > PANICO_CALMAR) {
         d.tipo = TipoDecision::CALMAR;

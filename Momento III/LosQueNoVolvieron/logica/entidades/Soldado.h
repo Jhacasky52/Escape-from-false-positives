@@ -36,6 +36,11 @@ public:
 
     void setPlanificador(const Planificador &p) { planificador = p; }
 
+    // Nivel del rio: la linterna apunta siempre al agua (angulo fijo) y se
+    // puede cambiar su alcance y apertura.
+    void fijarLinterna(double angulo) { linternaFija = true; anguloLinterna = angulo; }
+    void configurarLinterna(double alcance, double apertura, double barrido);
+
     EstadoSoldado getEstado() const { return estado; }
     double getSospecha() const { return sospecha; }
     const Linterna *getLinterna() const { return linterna; }
@@ -62,6 +67,8 @@ private:
     double sospecha;           // 0..1; en 1 empieza la persecucion
     double tiempoSinVerlo;
     double tiempoRevisando;    // cuanto lleva mirando alrededor del ruido
+    bool linternaFija;
+    double anguloLinterna;
 
     static constexpr double VELOCIDAD_PATRULLA = 70.0;
     static constexpr double FACTOR_INVESTIGAR = 1.4;

@@ -11,7 +11,8 @@ Soldado::Soldado(const QVector<QPointF> &ruta)
     : Personaje(ruta.isEmpty() ? QPointF() : ruta.first(), QSizeF(30, 30), VELOCIDAD_PATRULLA),
       ruta(ruta), indiceRuta(0), estado(EstadoSoldado::PATRULLANDO),
       linterna(new Linterna(230.0, qDegreesToRadians(21.0), qDegreesToRadians(30.0), 4.0)),
-      volviendo(false), sospecha(0.0), tiempoSinVerlo(0.0), tiempoRevisando(0.0)
+      volviendo(false), sospecha(0.0), tiempoSinVerlo(0.0), tiempoRevisando(0.0),
+      linternaFija(false), anguloLinterna(0.0)
 {
     if (ruta.size() > 1)
         indiceRuta = 1;
@@ -31,8 +32,15 @@ void Soldado::actualizar(double dt)
     }
 
     linterna->setOrigen(posicion);
-    linterna->setDireccionBase(orientacion);
+    linterna->setDireccionBase(linternaFija ? anguloLinterna : orientacion);
     linterna->actualizar(dt);
+}
+
+void Soldado::configurarLinterna(double alcance, double apertura, double barrido)
+{
+    delete linterna;
+    linterna = new Linterna(alcance, apertura, barrido, 4.0);
+    linterna->setOrigen(posicion);
 }
 
 // ------------------------------------------------------------ Estados

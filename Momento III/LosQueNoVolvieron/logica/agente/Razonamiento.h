@@ -28,6 +28,7 @@ public:
     static constexpr double DISTANCIA_OCULTARSE = 110.0;   // px soldado-Carlos
     static constexpr double RIESGO_PELIGRO = 0.75;
     static constexpr double PANICO_CALMAR = 60.0;
+    static constexpr double AVISO_CRECIENTE = 6.0;         // s antes de la creciente (rio)
 
 private:
     double evaluarRiesgo(const CeldaPercibida &c, const Estimulo &e, const Aprendizaje *mem) const;

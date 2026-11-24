@@ -22,6 +22,9 @@ Estimulo Percepcion::percibir(const Nivel *nivel, const QPointF &origen) const
     e.carlosEscondido = carlos->estaEscondido();
     e.meta = nivel->getMeta();
     e.tamCelda = nivel->tamCelda();
+    e.corriente = nivel->corrienteEn(e.posCarlos);
+    e.tiempoCreciente = nivel->tiempoParaCreciente();
+    e.hayRefugio = nivel->refugioCercano(e.posCarlos, e.refugio);
 
     // Soldados y linternas que estan cerca del anima o de Carlos
     for (const Soldado *s : nivel->getSoldados()) {

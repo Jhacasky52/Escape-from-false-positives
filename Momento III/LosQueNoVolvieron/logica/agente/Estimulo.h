@@ -40,8 +40,10 @@ struct Estimulo {
     double tamCelda = 64.0;
 
     // Nivel del rio (fase 5)
-    double corriente = 0.0;
-    double tiempoCreciente = 0.0;
+    double corriente = 0.0;          // px/s de la corriente donde esta Carlos (0 = fuera del agua)
+    double tiempoCreciente = -1.0;   // s para la proxima creciente (-1 = no hay rio)
+    bool hayRefugio = false;
+    QPointF refugio;                 // roca alta u orilla seca mas cercana
 };
 
 #endif
