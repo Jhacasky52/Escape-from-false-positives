@@ -292,9 +292,9 @@ void EscenaNivelSelva::teclaPulsada(int tecla)
         else
             carlos->esconderse();
     } else if (tecla == Qt::Key_Return || tecla == Qt::Key_Enter) {
-        if (estado == EstadoJuego::CAPTURADO || estado == EstadoJuego::FINAL
-            || estado == EstadoJuego::NIVEL_SUPERADO) {
-            // Fase 5: en NIVEL_SUPERADO se pasara al rio con pasarAlSiguienteNivel()
+        if (estado == EstadoJuego::NIVEL_SUPERADO) {
+            emit siguienteNivel();   // VentanaPrincipal pasa al rio
+        } else if (estado == EstadoJuego::CAPTURADO) {
             juego->reiniciarNivel();
             crearSpritesEntidades();
         }
@@ -570,7 +570,7 @@ void EscenaNivelSelva::drawForeground(QPainter *painter, const QRectF &rect)
         break;
     case EstadoJuego::NIVEL_SUPERADO:
     case EstadoJuego::FINAL:
-        mensaje = "Llegaste al rio.\n\n(El nivel 2 llega en la fase 5)\nPresiona Enter para repetir";
+        mensaje = "Llegaste al rio.\n\nAhora hay que cruzarlo sin que te vean.\nPresiona Enter para continuar";
         break;
     default:
         break;

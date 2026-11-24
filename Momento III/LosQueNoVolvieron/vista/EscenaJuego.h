@@ -24,6 +24,10 @@ public:
 
     static constexpr double DT = 1.0 / 60.0;
 
+signals:
+    // El jugador pidio seguir al siguiente nivel (Enter con el nivel superado)
+    void siguienteNivel();
+
 protected:
     virtual void actualizarLogica(double dt) = 0;
     virtual void actualizarVista() = 0;

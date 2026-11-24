@@ -6,6 +6,7 @@
 class QGraphicsView;
 class EscenaJuego;
 class Juego;
+class EscenaNivelRio;
 
 class VentanaPrincipal : public QMainWindow
 {
@@ -20,10 +21,12 @@ public:
 private:
     void mostrarEscena(EscenaJuego *escena);
     void alternarPruebaFisica();
+    void siguienteNivel();
 
     QGraphicsView *vista;
     Juego *juego;
     EscenaJuego *escenaNivel1;
+    EscenaJuego *escenaNivel2;
     EscenaJuego *escenaPrueba;
     EscenaJuego *escenaActual;
 };

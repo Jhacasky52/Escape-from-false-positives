@@ -1,8 +1,10 @@
 #include "VentanaPrincipal.h"
 #include "EscenaNivelSelva.h"
+#include "EscenaNivelRio.h"
 #include "EscenaPruebaFisica.h"
 #include "control/Juego.h"
 #include "niveles/NivelSelva.h"
+#include "niveles/NivelRio.h"
 
 #include <QGraphicsView>
 #include <QShortcut>
@@ -12,13 +14,18 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent)
 {
     setWindowTitle("Los que no volvieron");
 
-    // Logica: el juego con sus niveles (el nivel 2 se agrega en la fase 5)
+    // Logica: el juego con sus dos niveles (Juego es el dueno)
     NivelSelva *selva = new NivelSelva();
+    NivelRio *rio = new NivelRio();
     juego->agregarNivel(selva);
+    juego->agregarNivel(rio);
     juego->iniciar();
 
     // Graficos: una escena por nivel + la escena de prueba de fisicas (F9)
     escenaNivel1 = new EscenaNivelSelva(juego, selva, this);
+    escenaNivel2 = new EscenaNivelRio(juego, rio, this);
+    connect(escenaNivel1, &EscenaJuego::siguienteNivel, this, &VentanaPrincipal::siguienteNivel);
+    connect(escenaNivel2, &EscenaJuego::siguienteNivel, this, &VentanaPrincipal::siguienteNivel);
     escenaPrueba = new EscenaPruebaFisica(this);
     escenaPrueba->setSceneRect(0, 0, ANCHO, ALTO);
 
@@ -28,7 +35,8 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent)
     vista->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     vista->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     vista->setFixedSize(ANCHO + 2, ALTO + 2);
-    vista->setBackgroundBrush(QColor(8, 10, 8));
+    // Sin fondo en la vista: cada escena pinta el suyo (el rio dibuja el cielo con paralaje)
+    vista->setBackgroundBrush(Qt::NoBrush);
     setCentralWidget(vista);
     adjustSize();
     setFixedSize(size());
@@ -43,8 +51,10 @@ VentanaPrincipal::~VentanaPrincipal()
 {
     // Las escenas se detienen antes de borrar la logica que leen
     escenaNivel1->detenerBucle();
+    escenaNivel2->detenerBucle();
     escenaPrueba->detenerBucle();
     delete escenaNivel1;
+    delete escenaNivel2;
     delete escenaPrueba;
     delete juego;
 }
@@ -61,5 +71,17 @@ void VentanaPrincipal::mostrarEscena(EscenaJuego *escena)
 
 void VentanaPrincipal::alternarPruebaFisica()
 {
-    mostrarEscena(escenaActual == escenaNivel1 ? escenaPrueba : escenaNivel1);
+    EscenaJuego *nivel = juego->getIndiceNivel() == 0 ? escenaNivel1 : escenaNivel2;
+    mostrarEscena(escenaActual == escenaPrueba ? nivel : escenaPrueba);
+}
+
+// Enter con el nivel superado: la logica carga el siguiente nivel y se cambia de escena
+void VentanaPrincipal::siguienteNivel()
+{
+    if (juego->getEstado() == EstadoJuego::NIVEL_SUPERADO) {
+        juego->pasarAlSiguienteNivel();
+        static_cast<EscenaNivelRio *>(escenaNivel2)->reconstruir();
+        mostrarEscena(escenaNivel2);
+    }
+    // EstadoJuego::FINAL: el final en Cucuta con Ramon llega en la fase 6
 }

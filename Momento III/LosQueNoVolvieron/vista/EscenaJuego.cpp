@@ -1,9 +1,11 @@
 #include "EscenaJuego.h"
 #include <QKeyEvent>
+#include <QColor>
 
 EscenaJuego::EscenaJuego(QObject *parent)
     : QGraphicsScene(parent), acumulador(0.0), fps(0.0), cuadros(0), tiempoFps(0.0)
 {
+    setBackgroundBrush(QColor(8, 10, 8));   // fondo por defecto (fuera del mapa)
     temporizador.setTimerType(Qt::PreciseTimer);
     connect(&temporizador, &QTimer::timeout, this, &EscenaJuego::tick);
 }
