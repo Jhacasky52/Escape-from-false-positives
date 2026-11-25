@@ -50,7 +50,9 @@ private:
     double faseLatido;      // 0..1 dentro de un latido
     double pulso;           // brillo del corazon en el HUD (1 al latir, baja a 0)
     double esperaPaso;      // tiempo para el proximo sonido de pasos
-    bool estabaCapturado;   // para sonar una sola vez al ser atrapado
+    bool estabaCapturado;
+    bool ramonVisible;       // para notar cuando aparece su luz
+    static int indiceRecuerdo;   // compartido: los recuerdos no se repiten entre niveles   // para sonar una sola vez al ser atrapado
 
     QPixmap spCarlosIdle, spCarlosWalk1, spCarlosWalk2, spCarlosRun, spCarlosThrow, spCarlosEscondido;
     QPixmap spPiedra[3];

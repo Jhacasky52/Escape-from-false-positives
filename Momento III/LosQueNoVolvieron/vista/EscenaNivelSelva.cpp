@@ -9,6 +9,7 @@
 #include "rasgos/ConocedorDelMonte.h"
 #include "rasgos/Miedoso.h"
 #include "agente/Anima.h"
+#include "agente/AnimaRamon.h"
 #include "agente/Aprendizaje.h"
 #include "agente/Razonamiento.h"
 
@@ -45,7 +46,7 @@ double grados(double radianes) { return qRadiansToDegrees(radianes); }
 
 EscenaNivelSelva::EscenaNivelSelva(Juego *juego, NivelSelva *nivel, QObject *parent)
     : EscenaJuego(parent), juego(juego), nivel(nivel), tiempoAnimacion(0.0),
-      mapaConstruido(false), modoDepuracion(false), cargando(false), carga(0.0), faseLatido(0.0), pulso(0.0), esperaPaso(0.0), estabaCapturado(false),
+      mapaConstruido(false), modoDepuracion(false), cargando(false), carga(0.0), faseLatido(0.0), pulso(0.0), esperaPaso(0.0), estabaCapturado(false), ramonVisible(false),
       itemCarlos(nullptr), oscuridad(nullptr)
 {
     spCarlosIdle    = cargar(":/sprites/nivel1_selva/carlos_top_idle.png");
@@ -256,6 +257,17 @@ void EscenaNivelSelva::actualizarLogica(double dt)
     if (capturado && !estabaCapturado)
         sonar("captura", 0.9);
     estabaCapturado = capturado;
+
+    // La luz de Ramon aparece: Carlos recuerda algo de el
+    bool visible = false;
+    for (const Anima *a : nivel->getAnimas())
+        if (const AnimaRamon *r = dynamic_cast<const AnimaRamon *>(a))
+            visible = r->esVisible() && !r->enReencuentro();
+    if (visible && !ramonVisible && juego->getEstado() == EstadoJuego::JUGANDO) {
+        mostrarRecuerdo(QString::fromUtf8("Carlos recuerda: ") + AnimaRamon::siguienteRecuerdo());
+        sonar("ramon", 0.3);
+    }
+    ramonVisible = visible;
 }
 
 void EscenaNivelSelva::actualizarLatidos(double dt)
@@ -502,7 +514,8 @@ void EscenaNivelSelva::drawForeground(QPainter *painter, const QRectF &rect)
     f.setPointSize(11);
     painter->setFont(f);
     painter->setPen(QColor(220, 220, 200));
-    painter->drawText(12, 22, "Nivel 1: La selva   |   llega al rio (derecha) sin que te atrapen");
+    painter->drawText(12, 22, QString::fromUtf8("Nivel 1: La selva (%1)   |   llega al rio (derecha) sin que te atrapen")
+                                  .arg(Dificultad::nombre(nivel->getDificultad().nivel)));
     painter->drawText(12, h - 12, "WASD mover  Shift correr  Espacio (mantener) lanzar  E esconderse  P pausa  F1 animas  F9 fisicas");
     if (modoDepuracion && nivel->getMemoria() != nullptr) {
         Aprendizaje *m = nivel->getMemoria();
@@ -510,6 +523,7 @@ void EscenaNivelSelva::drawForeground(QPainter *painter, const QRectF &rect)
                                       .arg(m->getTasaObediencia(), 0, 'f', 2)
                                       .arg(m->insistencia(), 0, 'f', 2)
                                       .arg(m->numeroCapturas()));
+        painter->drawText(12, 64, nivel->getDificultad().resumen());
     }
 
     Carlos *carlos = nivel->getCarlos();
@@ -601,5 +615,6 @@ void EscenaNivelSelva::drawForeground(QPainter *painter, const QRectF &rect)
         painter->drawText(QRect(0, 0, w, h), Qt::AlignCenter, mensaje);
     }
     dibujarAviso(painter, w, h);
+    dibujarRecuerdo(painter, w, h);
     painter->restore();
 }

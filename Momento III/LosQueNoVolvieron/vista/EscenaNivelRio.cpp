@@ -7,6 +7,7 @@
 #include "entidades/Linterna.h"
 #include "entidades/Tronco.h"
 #include "agente/Anima.h"
+#include "agente/AnimaRamon.h"
 #include "agente/Aprendizaje.h"
 
 #include <QGraphicsPixmapItem>
@@ -42,7 +43,7 @@ QPixmap cargar(const QString &ruta)
 EscenaNivelRio::EscenaNivelRio(Juego *juego, NivelRio *nivel, QObject *parent)
     : EscenaJuego(parent), juego(juego), nivel(nivel), tiempoAnimacion(0.0),
       faseLatido(0.0), pulso(0.0), modoDepuracion(false), esperaChapoteo(0.0),
-      estabaCapturado(false), etapaAnterior(0), itemCarlos(nullptr),
+      estabaCapturado(false), ramonVisible(false), etapaAnterior(0), itemCarlos(nullptr),
       agua(nullptr), lineaAgua(nullptr)
 {
     const QString r = ":/sprites/nivel2_rio/";
@@ -228,6 +229,17 @@ void EscenaNivelRio::actualizarLogica(double dt)
     if (capturado && !estabaCapturado)
         sonar("captura", 0.9);
     estabaCapturado = capturado;
+
+    // La luz de Ramon aparece: Carlos recuerda algo de el
+    bool visible = false;
+    for (const Anima *a : nivel->getAnimas())
+        if (const AnimaRamon *r = dynamic_cast<const AnimaRamon *>(a))
+            visible = r->esVisible() && !r->enReencuentro();
+    if (visible && !ramonVisible && juego->getEstado() == EstadoJuego::JUGANDO) {
+        mostrarRecuerdo(QString::fromUtf8("Carlos recuerda: ") + AnimaRamon::siguienteRecuerdo());
+        sonar("ramon", 0.3);
+    }
+    ramonVisible = visible;
 }
 
 void EscenaNivelRio::actualizarLatidos(double dt)
@@ -567,5 +579,6 @@ void EscenaNivelRio::drawForeground(QPainter *painter, const QRectF &rect)
         painter->drawText(QRect(0, 0, w, h), Qt::AlignCenter, mensaje);
     }
     dibujarAviso(painter, w, h);
+    dibujarRecuerdo(painter, w, h);
     painter->restore();
 }

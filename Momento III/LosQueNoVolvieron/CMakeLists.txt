@@ -70,6 +70,7 @@ qt_add_executable(LosQueNoVolvieron
     vista/EscenaNivelRio.h    vista/EscenaNivelRio.cpp
     vista/EscenaMenu.h        vista/EscenaMenu.cpp
     vista/EscenaFinal.h       vista/EscenaFinal.cpp
+    vista/EscenaIntro.h       vista/EscenaIntro.cpp
     vista/Sonidos.h           vista/Sonidos.cpp
 )
 

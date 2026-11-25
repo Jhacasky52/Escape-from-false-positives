@@ -29,6 +29,8 @@ public:
     void setSonidos(Sonidos *s) { sonidos = s; }
     // Mensaje corto que se ve unos segundos (por ejemplo "Partida guardada")
     void mostrarAviso(const QString &texto, double segundos = 2.5);
+    // Recuerdo de Carlos sobre Ramon, abajo y en cursiva
+    void mostrarRecuerdo(const QString &texto, double segundos = 5.5);
 
     static constexpr double DT = 1.0 / 60.0;
 
@@ -45,6 +47,7 @@ protected:
     bool teclaPresionada(int tecla) const { return teclas.contains(tecla); }
     void sonar(const QString &nombre, double volumen = 1.0);   // no hace nada sin Sonidos
     void dibujarAviso(QPainter *painter, int ancho, int alto);  // en coordenadas de pantalla
+    void dibujarRecuerdo(QPainter *painter, int ancho, int alto);
 
     Sonidos *sonidos;
 
@@ -67,6 +70,8 @@ private:
     QSet<int> teclas;
     QString aviso;
     double tiempoAviso;
+    QString recuerdo;
+    double tiempoRecuerdo;
 };
 
 #endif

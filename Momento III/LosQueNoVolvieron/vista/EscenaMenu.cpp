@@ -5,7 +5,8 @@
 #include <QtMath>
 
 EscenaMenu::EscenaMenu(QObject *parent)
-    : EscenaJuego(parent), seleccion(NUEVA), hayPartida(false), viendoControles(false), tiempo(0.0)
+    : EscenaJuego(parent), seleccion(NUEVA), hayPartida(false), viendoControles(false),
+      dificultad(NivelDificultad::NORMAL), tiempo(0.0)
 {
     setSceneRect(0, 0, 960, 600);
     fondo = QPixmap(":/sprites/nivel2_rio/fondo_rio_normal.png");
@@ -38,6 +39,14 @@ void EscenaMenu::mover(int paso)
     sonar("pasos", 0.3);
 }
 
+void EscenaMenu::cambiarDificultad(int paso)
+{
+    int d = (static_cast<int>(dificultad) + paso + 3) % 3;
+    dificultad = static_cast<NivelDificultad>(d);
+    sonar("pasos", 0.3);
+    emit dificultadCambiada(dificultad);
+}
+
 void EscenaMenu::teclaPulsada(int tecla)
 {
     if (viendoControles) {
@@ -51,8 +60,17 @@ void EscenaMenu::teclaPulsada(int tecla)
     case Qt::Key_S: case Qt::Key_Down:
         mover(1);
         break;
+    case Qt::Key_A: case Qt::Key_Left:
+        if (seleccion == DIFICULTAD)
+            cambiarDificultad(-1);
+        break;
+    case Qt::Key_D: case Qt::Key_Right:
+        if (seleccion == DIFICULTAD)
+            cambiarDificultad(1);
+        break;
     case Qt::Key_Return: case Qt::Key_Enter: case Qt::Key_Space:
         switch (seleccion) {
+        case DIFICULTAD: cambiarDificultad(1); break;
         case NUEVA:     emit nuevaPartida(); break;
         case CONTINUAR: emit continuarPartida(); break;
         case CONTROLES: viendoControles = true; break;
@@ -129,6 +147,7 @@ void EscenaMenu::drawForeground(QPainter *painter, const QRectF &rect)
             "NIVEL 2 - EL RÍO\n"
             "A/D: nadar     S: bucear (gasta aire)     W: subirse a una roca\n\n"
             "P: pausa (G guarda la partida, M vuelve al menú)\n"
+            "Dificultad (menú, con ◂ ▸): cambia cómo piensan los soldados y las ánimas en la selva\n"
             "F1: ver lo que piensan las ánimas     Enter: reintentar\n\n"
             "Las luces que flotan son las ánimas. Blancas: por ahí es seguro.\n"
             "Rojas: peligro. Síguelas.");
@@ -140,7 +159,9 @@ void EscenaMenu::drawForeground(QPainter *painter, const QRectF &rect)
         return;
     }
 
-    const char *nombres[NUM_OPCIONES] = {"Nueva partida", "Continuar", "Controles", "Salir"};
+    const QString nombres[NUM_OPCIONES] = {"Nueva partida", "Continuar",
+                                           QString::fromUtf8("Dificultad:  ◂ %1 ▸").arg(Dificultad::nombre(dificultad)),
+                                           "Controles", "Salir"};
     f.setPointSize(17);
     for (int i = 0; i < NUM_OPCIONES; ++i) {
         bool activa = (i != CONTINUAR || hayPartida);
@@ -149,7 +170,7 @@ void EscenaMenu::drawForeground(QPainter *painter, const QRectF &rect)
         painter->setFont(f);
         QColor c = !activa ? QColor(95, 95, 90) : (elegida ? QColor(250, 235, 170) : QColor(205, 205, 195));
         painter->setPen(c);
-        QRect caja(0, 240 + i * 52, 960, 40);
+        QRect caja(0, 210 + i * 48, 960, 40);
         QString texto = nombres[i];
         if (elegida)
             texto = QString::fromUtf8("·  ") + texto + QString::fromUtf8("  ·");
@@ -160,9 +181,28 @@ void EscenaMenu::drawForeground(QPainter *painter, const QRectF &rect)
     f.setBold(false);
     painter->setFont(f);
     painter->setPen(QColor(170, 170, 160));
-    painter->drawText(QRect(80, 500, 800, 60), Qt::AlignCenter | Qt::TextWordWrap,
+    QString nota = QString::fromUtf8(
         "Carlos vio lo que no debía ver. Tiene que llegar a Cúcuta para contarlo.\n"
         "No está solo: los que no volvieron le muestran el camino.");
+    if (seleccion == DIFICULTAD) {
+        // Que cambia cada dificultad (en la selva)
+        switch (dificultad) {
+        case NivelDificultad::FACIL:
+            nota = QString::fromUtf8("Fácil: los soldados tardan en reconocerte y olvidan pronto.\n"
+                                     "Las ánimas ven más lejos y avisan antes. Ramón aparece más seguido.");
+            break;
+        case NivelDificultad::NORMAL:
+            nota = QString::fromUtf8("Normal: la experiencia pensada para el juego.\n"
+                                     "Cada soldado actúa solo y el escondite te protege.");
+            break;
+        case NivelDificultad::DIFICIL:
+            nota = QString::fromUtf8("Difícil: los soldados se avisan por radio, buscan hacia donde ibas\n"
+                                     "y revisan los escondites. Las ánimas apenas brillan. El miedo llega antes.");
+            break;
+        }
+        painter->setPen(QColor(230, 215, 160));
+    }
+    painter->drawText(QRect(60, 500, 840, 60), Qt::AlignCenter | Qt::TextWordWrap, nota);
     dibujarAviso(painter, 960, 600);
     painter->restore();
 }

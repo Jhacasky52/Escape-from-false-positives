@@ -50,6 +50,7 @@ private:
     bool modoDepuracion;
     double esperaChapoteo;
     bool estabaCapturado;
+    bool ramonVisible;       // para notar cuando aparece su luz
     int etapaAnterior;       // para sonar cuando empieza la creciente
 
     QPixmap spFondo[3];

@@ -3,6 +3,7 @@
 #include "EscenaNivelSelva.h"
 #include "EscenaNivelRio.h"
 #include "EscenaFinal.h"
+#include "EscenaIntro.h"
 #include "EscenaPruebaFisica.h"
 #include "Sonidos.h"
 #include "control/Juego.h"
@@ -32,6 +33,9 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent)
     escenaNivel1 = new EscenaNivelSelva(juego, selva, this);
     escenaNivel2 = new EscenaNivelRio(juego, rio, this);
     escenaFinal = new EscenaFinal(this);
+    escenaIntro = new EscenaIntro(this);
+    escenaIntro->setSonidos(sonidos);
+    connect(escenaIntro, &EscenaIntro::terminada, this, [this]() { mostrarEscena(escenaNivel1); });
     escenaPrueba = new EscenaPruebaFisica(this);
     escenaPrueba->setSceneRect(0, 0, ANCHO, ALTO);
 
@@ -45,6 +49,9 @@ VentanaPrincipal::VentanaPrincipal(QWidget *parent)
     connect(escenaMenu, &EscenaMenu::nuevaPartida, this, &VentanaPrincipal::nuevaPartida);
     connect(escenaMenu, &EscenaMenu::continuarPartida, this, &VentanaPrincipal::continuarPartida);
     connect(escenaMenu, &EscenaMenu::salir, this, &QWidget::close);
+    connect(escenaMenu, &EscenaMenu::dificultadCambiada, this, [this](NivelDificultad d) {
+        juego->setDificultad(d);
+    });
 
     vista = new QGraphicsView(this);
     vista->setRenderHint(QPainter::SmoothPixmapTransform, false);   // pixel art nitido
@@ -69,7 +76,7 @@ VentanaPrincipal::~VentanaPrincipal()
     // Las escenas se detienen antes de borrar la logica que leen
     for (EscenaJuego *e : {static_cast<EscenaJuego *>(escenaMenu), static_cast<EscenaJuego *>(escenaNivel1),
                            static_cast<EscenaJuego *>(escenaNivel2), static_cast<EscenaJuego *>(escenaFinal),
-                           escenaPrueba}) {
+                           static_cast<EscenaJuego *>(escenaIntro), escenaPrueba}) {
         e->detenerBucle();
         delete e;
     }
@@ -86,7 +93,7 @@ void VentanaPrincipal::mostrarEscena(EscenaJuego *escena)
     escena->iniciarBucle();
 
     // Sonido de fondo de cada escena
-    if (escena == escenaNivel1)
+    if (escena == escenaNivel1 || escena == escenaIntro)
         sonidos->ambiente("ambiente_selva", 0.5);
     else if (escena == escenaNivel2 || escena == escenaMenu)
         sonidos->ambiente("ambiente_rio", escena == escenaMenu ? 0.3 : 0.5);
@@ -114,6 +121,7 @@ void VentanaPrincipal::alternarPruebaFisica()
 void VentanaPrincipal::irAlMenu()
 {
     escenaMenu->setHayPartida(Partida::existe(rutaPartida));
+    escenaMenu->setDificultad(juego->getDificultad().nivel);
     mostrarEscena(escenaMenu);
 }
 
@@ -121,7 +129,9 @@ void VentanaPrincipal::nuevaPartida()
 {
     juego->nuevaPartida();
     escenaNivel1->reconstruir();
-    mostrarEscena(escenaNivel1);
+    // Primero la introduccion: quien era Ramon y por que huye Carlos
+    escenaIntro->comenzar();
+    mostrarEscena(escenaIntro);
 }
 
 void VentanaPrincipal::continuarPartida()
@@ -136,7 +146,7 @@ void VentanaPrincipal::continuarPartida()
     else
         escenaNivel2->reconstruir();
     mostrarEscena(escenaDelNivel());
-    escenaActual->mostrarAviso("Partida cargada");
+    escenaActual->mostrarAviso("Partida cargada (" + Dificultad::nombre(juego->getDificultad().nivel) + ")");
 }
 
 void VentanaPrincipal::guardarPartida()

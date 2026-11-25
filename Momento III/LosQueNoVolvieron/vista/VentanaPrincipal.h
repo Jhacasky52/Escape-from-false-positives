@@ -10,11 +10,12 @@ class EscenaMenu;
 class EscenaNivelSelva;
 class EscenaNivelRio;
 class EscenaFinal;
+class EscenaIntro;
 class Juego;
 class Sonidos;
 
 // Ventana del juego. Arma la logica (Juego con sus dos niveles) y las escenas,
-// y decide que escena se ve: menu -> selva -> rio -> final -> menu.
+// y decide que escena se ve: menu -> introduccion -> selva -> rio -> final -> menu.
 class VentanaPrincipal : public QMainWindow
 {
     Q_OBJECT
@@ -45,6 +46,7 @@ private:
     EscenaNivelSelva *escenaNivel1;
     EscenaNivelRio *escenaNivel2;
     EscenaFinal *escenaFinal;
+    EscenaIntro *escenaIntro;
     EscenaJuego *escenaPrueba;
     EscenaJuego *escenaActual;
 };

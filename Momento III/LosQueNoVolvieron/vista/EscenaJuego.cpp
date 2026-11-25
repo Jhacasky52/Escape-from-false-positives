@@ -5,7 +5,7 @@
 #include "Sonidos.h"
 
 EscenaJuego::EscenaJuego(QObject *parent)
-    : QGraphicsScene(parent), sonidos(nullptr), acumulador(0.0), fps(0.0), cuadros(0), tiempoFps(0.0), tiempoAviso(0.0)
+    : QGraphicsScene(parent), sonidos(nullptr), acumulador(0.0), fps(0.0), cuadros(0), tiempoFps(0.0), tiempoAviso(0.0), tiempoRecuerdo(0.0)
 {
     setBackgroundBrush(QColor(8, 10, 8));   // fondo por defecto (fuera del mapa)
     temporizador.setTimerType(Qt::PreciseTimer);
@@ -38,6 +38,8 @@ void EscenaJuego::tick()
     }
     if (tiempoAviso > 0.0)
         tiempoAviso -= transcurrido;
+    if (tiempoRecuerdo > 0.0)
+        tiempoRecuerdo -= transcurrido;
     actualizarVista();
 
     // Contador de cuadros por segundo
@@ -93,5 +95,29 @@ void EscenaJuego::dibujarAviso(QPainter *painter, int ancho, int alto)
     painter->fillRect(caja, QColor(0, 0, 0, 190));
     painter->setPen(QColor(235, 225, 170, int(255 * qMin(1.0, tiempoAviso))));
     painter->drawText(caja, Qt::AlignCenter, aviso);
+    painter->restore();
+}
+
+void EscenaJuego::mostrarRecuerdo(const QString &texto, double segundos)
+{
+    recuerdo = texto;
+    tiempoRecuerdo = segundos;
+}
+
+void EscenaJuego::dibujarRecuerdo(QPainter *painter, int ancho, int alto)
+{
+    if (tiempoRecuerdo <= 0.0 || recuerdo.isEmpty())
+        return;
+    painter->save();
+    QFont f = painter->font();
+    f.setPointSize(13);
+    f.setItalic(true);
+    painter->setFont(f);
+    int alfa = int(255 * qMin(1.0, tiempoRecuerdo));
+    QRect caja(0, alto - 110, ancho, 30);
+    painter->setPen(QColor(0, 0, 0, alfa * 3 / 4));
+    painter->drawText(caja.translated(2, 2), Qt::AlignCenter, recuerdo);
+    painter->setPen(QColor(250, 205, 140, alfa));   // el color calido de Ramon
+    painter->drawText(caja, Qt::AlignCenter, recuerdo);
     painter->restore();
 }
