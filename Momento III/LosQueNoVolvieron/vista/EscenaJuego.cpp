@@ -1,9 +1,11 @@
 #include "EscenaJuego.h"
 #include <QKeyEvent>
 #include <QColor>
+#include <QPainter>
+#include "Sonidos.h"
 
 EscenaJuego::EscenaJuego(QObject *parent)
-    : QGraphicsScene(parent), acumulador(0.0), fps(0.0), cuadros(0), tiempoFps(0.0)
+    : QGraphicsScene(parent), sonidos(nullptr), acumulador(0.0), fps(0.0), cuadros(0), tiempoFps(0.0), tiempoAviso(0.0)
 {
     setBackgroundBrush(QColor(8, 10, 8));   // fondo por defecto (fuera del mapa)
     temporizador.setTimerType(Qt::PreciseTimer);
@@ -34,6 +36,8 @@ void EscenaJuego::tick()
         actualizarLogica(DT);
         acumulador -= DT;
     }
+    if (tiempoAviso > 0.0)
+        tiempoAviso -= transcurrido;
     actualizarVista();
 
     // Contador de cuadros por segundo
@@ -60,4 +64,34 @@ void EscenaJuego::keyReleaseEvent(QKeyEvent *evento)
         return;
     teclas.remove(evento->key());
     teclaSoltada(evento->key());
+}
+
+void EscenaJuego::mostrarAviso(const QString &texto, double segundos)
+{
+    aviso = texto;
+    tiempoAviso = segundos;
+    update();
+}
+
+void EscenaJuego::sonar(const QString &nombre, double volumen)
+{
+    if (sonidos != nullptr)
+        sonidos->reproducir(nombre, volumen);
+}
+
+void EscenaJuego::dibujarAviso(QPainter *painter, int ancho, int alto)
+{
+    Q_UNUSED(alto);
+    if (tiempoAviso <= 0.0 || aviso.isEmpty())
+        return;
+    painter->save();
+    QFont f = painter->font();
+    f.setPointSize(13);
+    f.setBold(true);
+    painter->setFont(f);
+    QRect caja(ancho / 2 - 160, 80, 320, 36);
+    painter->fillRect(caja, QColor(0, 0, 0, 190));
+    painter->setPen(QColor(235, 225, 170, int(255 * qMin(1.0, tiempoAviso))));
+    painter->drawText(caja, Qt::AlignCenter, aviso);
+    painter->restore();
 }

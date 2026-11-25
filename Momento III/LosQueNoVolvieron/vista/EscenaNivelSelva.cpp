@@ -45,7 +45,7 @@ double grados(double radianes) { return qRadiansToDegrees(radianes); }
 
 EscenaNivelSelva::EscenaNivelSelva(Juego *juego, NivelSelva *nivel, QObject *parent)
     : EscenaJuego(parent), juego(juego), nivel(nivel), tiempoAnimacion(0.0),
-      mapaConstruido(false), modoDepuracion(false), cargando(false), carga(0.0), faseLatido(0.0), pulso(0.0),
+      mapaConstruido(false), modoDepuracion(false), cargando(false), carga(0.0), faseLatido(0.0), pulso(0.0), esperaPaso(0.0), estabaCapturado(false),
       itemCarlos(nullptr), oscuridad(nullptr)
 {
     spCarlosIdle    = cargar(":/sprites/nivel1_selva/carlos_top_idle.png");
@@ -241,8 +241,21 @@ void EscenaNivelSelva::actualizarLogica(double dt)
         if (cargando)
             carga = qMin(1.0, carga + dt);   // 1 segundo para la fuerza maxima
         actualizarLatidos(dt);
+
+        // Pasos: caminando cada 0.45 s y bajito, corriendo mas seguido y fuerte
+        esperaPaso -= dt;
+        if (carlos->estaMoviendose() && esperaPaso <= 0.0) {
+            bool corre = carlos->estaCorriendo();
+            sonar("pasos", corre ? 0.55 : 0.25);
+            esperaPaso = corre ? 0.28 : 0.45;
+        }
     }
     juego->actualizar(dt);
+
+    bool capturado = juego->getEstado() == EstadoJuego::CAPTURADO;
+    if (capturado && !estabaCapturado)
+        sonar("captura", 0.9);
+    estabaCapturado = capturado;
 }
 
 void EscenaNivelSelva::actualizarLatidos(double dt)
@@ -280,6 +293,10 @@ void EscenaNivelSelva::teclaPulsada(int tecla)
     Carlos *carlos = nivel->getCarlos();
     if (tecla == Qt::Key_P || tecla == Qt::Key_Escape) {
         juego->alternarPausa();
+    } else if (tecla == Qt::Key_G && estado == EstadoJuego::PAUSADO) {
+        emit guardarPartida();
+    } else if (tecla == Qt::Key_M && (estado == EstadoJuego::PAUSADO || estado == EstadoJuego::CAPTURADO)) {
+        emit volverAlMenu();
     } else if (tecla == Qt::Key_Space && estado == EstadoJuego::JUGANDO
                && carlos != nullptr && carlos->puedeLanzar()) {
         cargando = true;
@@ -563,10 +580,10 @@ void EscenaNivelSelva::drawForeground(QPainter *painter, const QRectF &rect)
     QString mensaje;
     switch (juego->getEstado()) {
     case EstadoJuego::CAPTURADO:
-        mensaje = "Te atraparon.\n\nPresiona Enter para intentarlo de nuevo";
+        mensaje = "Te atraparon.\n\nEnter: intentarlo de nuevo     M: menu principal";
         break;
     case EstadoJuego::PAUSADO:
-        mensaje = "Pausa\n\nPresiona P para continuar";
+        mensaje = "Pausa\n\nP: continuar     G: guardar partida     M: menu principal";
         break;
     case EstadoJuego::NIVEL_SUPERADO:
     case EstadoJuego::FINAL:
@@ -583,5 +600,6 @@ void EscenaNivelSelva::drawForeground(QPainter *painter, const QRectF &rect)
         painter->setPen(QColor(235, 230, 215));
         painter->drawText(QRect(0, 0, w, h), Qt::AlignCenter, mensaje);
     }
+    dibujarAviso(painter, w, h);
     painter->restore();
 }

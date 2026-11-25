@@ -61,6 +61,7 @@ qt_add_executable(LosQueNoVolvieron
     vista/EscenaPruebaFisica.h vista/EscenaPruebaFisica.cpp
     vista/EscenaNivelSelva.h  vista/EscenaNivelSelva.cpp
     vista/EscenaNivelRio.h    vista/EscenaNivelRio.cpp
+    vista/Sonidos.h           vista/Sonidos.cpp
 )
 
 qt_add_resources(LosQueNoVolvieron "recursos"

@@ -41,7 +41,8 @@ QPixmap cargar(const QString &ruta)
 
 EscenaNivelRio::EscenaNivelRio(Juego *juego, NivelRio *nivel, QObject *parent)
     : EscenaJuego(parent), juego(juego), nivel(nivel), tiempoAnimacion(0.0),
-      faseLatido(0.0), pulso(0.0), modoDepuracion(false), itemCarlos(nullptr),
+      faseLatido(0.0), pulso(0.0), modoDepuracion(false), esperaChapoteo(0.0),
+      estabaCapturado(false), etapaAnterior(0), itemCarlos(nullptr),
       agua(nullptr), lineaAgua(nullptr)
 {
     const QString r = ":/sprites/nivel2_rio/";
@@ -105,6 +106,8 @@ QPixmap EscenaNivelRio::sinAgua(const QPixmap &p)
 
 void EscenaNivelRio::reconstruir()
 {
+    etapaAnterior = static_cast<int>(nivel->getEtapa());
+    estabaCapturado = false;
     crearApoyos();
     crearSpritesEntidades();
 }
@@ -201,8 +204,30 @@ void EscenaNivelRio::actualizarLogica(double dt)
         if (teclaPresionada(Qt::Key_S) || teclaPresionada(Qt::Key_Down))  dir.ry() += 1;
         carlos->setDireccion(dir);
         actualizarLatidos(dt);
+
+        // Brazadas en la superficie: chapoteo; sobre las rocas: pasos
+        esperaChapoteo -= dt;
+        if (carlos->estaMoviendose() && esperaChapoteo <= 0.0) {
+            if (carlos->estaEnAgua() && !carlos->estaSumergido()) {
+                sonar("chapoteo", 0.45);
+                esperaChapoteo = 0.6;
+            } else if (!carlos->estaEnAgua()) {
+                sonar("pasos", 0.25);
+                esperaChapoteo = 0.45;
+            }
+        }
     }
     juego->actualizar(dt);
+
+    int etapa = static_cast<int>(nivel->getEtapa());
+    if (etapa != etapaAnterior && nivel->getEtapa() == EtapaRio::MEDIA
+        && etapaAnterior == static_cast<int>(EtapaRio::NORMAL))
+        sonar("creciente", 0.8);
+    etapaAnterior = etapa;
+    bool capturado = juego->getEstado() == EstadoJuego::CAPTURADO;
+    if (capturado && !estabaCapturado)
+        sonar("captura", 0.9);
+    estabaCapturado = capturado;
 }
 
 void EscenaNivelRio::actualizarLatidos(double dt)
@@ -228,6 +253,10 @@ void EscenaNivelRio::teclaPulsada(int tecla)
     EstadoJuego estado = juego->getEstado();
     if (tecla == Qt::Key_P || tecla == Qt::Key_Escape) {
         juego->alternarPausa();
+    } else if (tecla == Qt::Key_G && estado == EstadoJuego::PAUSADO) {
+        emit guardarPartida();
+    } else if (tecla == Qt::Key_M && (estado == EstadoJuego::PAUSADO || estado == EstadoJuego::CAPTURADO)) {
+        emit volverAlMenu();
     } else if (tecla == Qt::Key_F1) {
         modoDepuracion = !modoDepuracion;
     } else if (tecla == Qt::Key_Return || tecla == Qt::Key_Enter) {
@@ -517,14 +546,14 @@ void EscenaNivelRio::drawForeground(QPainter *painter, const QRectF &rect)
         case MotivoDerrota::ARRASTRADO: mensaje = "La corriente te arrastro."; break;
         default:                        mensaje = "Te vieron desde la orilla."; break;
         }
-        mensaje += "\n\nPresiona Enter para intentarlo de nuevo";
+        mensaje += "\n\nEnter: intentarlo de nuevo     M: menu principal";
         break;
     case EstadoJuego::PAUSADO:
-        mensaje = "Pausa\n\nPresiona P para continuar";
+        mensaje = "Pausa\n\nP: continuar     G: guardar partida     M: menu principal";
         break;
     case EstadoJuego::FINAL:
     case EstadoJuego::NIVEL_SUPERADO:
-        mensaje = "Cruzaste el rio.\n\nCucuta esta cerca.";
+        mensaje = "Cruzaste el rio.\n\nCucuta esta cerca.\nPresiona Enter";
         break;
     default:
         break;
@@ -537,5 +566,6 @@ void EscenaNivelRio::drawForeground(QPainter *painter, const QRectF &rect)
         painter->setPen(QColor(235, 230, 215));
         painter->drawText(QRect(0, 0, w, h), Qt::AlignCenter, mensaje);
     }
+    dibujarAviso(painter, w, h);
     painter->restore();
 }

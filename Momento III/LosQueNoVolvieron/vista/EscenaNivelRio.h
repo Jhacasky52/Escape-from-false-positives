@@ -48,6 +48,9 @@ private:
     double faseLatido;
     double pulso;
     bool modoDepuracion;
+    double esperaChapoteo;
+    bool estabaCapturado;
+    int etapaAnterior;       // para sonar cuando empieza la creciente
 
     QPixmap spFondo[3];
     QPixmap spCarlosNada1, spCarlosNada2, spCarlosSumergido, spCarlosArrastrado;

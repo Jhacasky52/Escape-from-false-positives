@@ -23,6 +23,9 @@ class EscenaNivelSelva : public EscenaJuego
 public:
     EscenaNivelSelva(Juego *juego, NivelSelva *nivel, QObject *parent = nullptr);
 
+    // Vuelve a crear los sprites (al empezar una partida o cargarla)
+    void reconstruir() { crearSpritesEntidades(); }
+
 protected:
     void actualizarLogica(double dt) override;
     void actualizarVista() override;
@@ -46,6 +49,8 @@ private:
     double carga;           // 0..1
     double faseLatido;      // 0..1 dentro de un latido
     double pulso;           // brillo del corazon en el HUD (1 al latir, baja a 0)
+    double esperaPaso;      // tiempo para el proximo sonido de pasos
+    bool estabaCapturado;   // para sonar una sola vez al ser atrapado
 
     QPixmap spCarlosIdle, spCarlosWalk1, spCarlosWalk2, spCarlosRun, spCarlosThrow, spCarlosEscondido;
     QPixmap spPiedra[3];
