@@ -9,11 +9,30 @@ guiado por las ánimas de las víctimas.
 1. En Qt Creator: **Archivo > Abrir archivo o proyecto** y elegir `CMakeLists.txt`.
 2. Seleccionar el kit de Qt 6 (por ejemplo *Desktop Qt 6.x MinGW 64-bit*) y pulsar **Configurar proyecto**.
 3. Ejecutar con el botón verde (objetivo `LosQueNoVolvieron`).
-4. Para correr las pruebas automáticas, cambiar el objetivo a `pruebas_fisica`, `pruebas_nivel`, `pruebas_animas` o `pruebas_rio` (abajo a la izquierda, icono del monitor) y ejecutar.
+4. Para correr las pruebas automáticas, cambiar el objetivo a `pruebas_fisica`, `pruebas_nivel`, `pruebas_animas`, `pruebas_rio` o `pruebas_partida` (abajo a la izquierda, icono del monitor) y ejecutar.
 
-## Estado actual: fase 5 (nivel 2, el río)
+## Estado actual: fase 6 (juego completo)
 
-Al abrir el juego empieza el **nivel 1, la selva**: es de noche, la cámara sigue a Carlos y
+El juego ya tiene todo el recorrido: **menú → selva → río → final en Cúcuta → menú**.
+
+**Fase 6:**
+- **Menú principal** (`EscenaMenu`): Nueva partida, Continuar (solo si hay partida guardada), Controles y Salir.
+- **Pausa** (P): G guarda la partida, M vuelve al menú. Al perder también se puede volver al menú con M.
+- **Guardar partida** (`logica/control/Partida`): un archivo JSON en la carpeta de datos del usuario
+  (en Windows `%APPDATA%/LosQueNoVolvieron/LosQueNoVolvieron/partida.json`). Guarda el nivel al que llegó
+  Carlos y **lo que aprendieron las ánimas** (mapa de peligro, capturas y obediencia), así que al continuar
+  las ánimas siguen evitando las zonas donde lo atraparon. Se guarda solo al pasar al río y con G en la
+  pausa; el nivel se retoma desde su comienzo. Si el archivo está dañado, el juego lo avisa y no se rompe.
+- **Final** (`EscenaFinal`): Carlos llega a Cúcuta al amanecer, el ánima de Ramón baja a su encuentro
+  (`AnimaRamon::reencuentro()`, que también se activa en la lógica al llegar a la otra orilla) y las demás
+  ánimas suben al cielo. Cierra con una dedicatoria a las víctimas. Al terminar se borra la partida guardada.
+- **Sonido** (`vista/Sonidos`, con Qt Multimedia): ambiente de la selva (grillos y viento) y del río,
+  pasos, chapoteo al nadar, retumbo cuando empieza la creciente, golpe al ser atrapado, campana de Ramón
+  y los latidos. Los `.wav` se generaron por código y están en `recursos/sonidos/`.
+
+### Niveles
+
+Al elegir Nueva partida empieza el **nivel 1, la selva**: es de noche, la cámara sigue a Carlos y
 cuatro soldados patrullan con linternas. Si Carlos queda en la luz unos instantes, lo descubren
 y lo persiguen; si lo alcanzan, el nivel se reinicia. Se gana llegando al río (borde derecho).
 Los árboles bloquean el paso y la luz. El mapa se edita en `recursos/mapas/selva.txt`.
@@ -94,7 +113,7 @@ Controles de la prueba: WASD mover, Shift correr, Espacio lanzar, J nadar, R rei
 
 ```
 logica/            capa lógica (las clases del diagrama del Momento II, sin gráficos)
-  control/         Juego, EstadoJuego
+  control/         Juego, EstadoJuego, Partida (guardar y cargar en JSON)
   niveles/         Nivel (abstracta), NivelSelva, NivelRio
   entidades/       Entidad, Personaje, Carlos, Soldado, Linterna, Piedra, Tronco
   rasgos/          Rasgo, ConocedorDelMonte, Miedoso
@@ -104,12 +123,15 @@ vista/             capa gráfica de Qt
   EscenaJuego      bucle de juego con paso fijo (1/60 s)
   EscenaNivelSelva    gráficos del nivel 1: mapa, sprites, oscuridad, cámara, HUD
   EscenaNivelRio      gráficos del nivel 2: fondo con paralaje, agua, rocas, troncos, aire, creciente
+  EscenaMenu          menú principal y controles
+  EscenaFinal         final en Cúcuta con Ramón
   EscenaPruebaFisica  escena de prueba de la fase 1
-  VentanaPrincipal
-pruebas/           pruebas automáticas: físicas, nivel 1, agente (ánimas) y nivel 2 (río)
+  Sonidos             efectos y ambiente (opcional, con Qt Multimedia)
+  VentanaPrincipal    arma el juego y cambia de escena: menú → selva → río → final
+pruebas/           pruebas automáticas: físicas, nivel 1, agente (ánimas), nivel 2 (río) y partida
 recursos/sprites/  sprites (se compilan dentro del ejecutable como :/sprites/...)
 recursos/mapas/    mapas de los niveles en texto
-recursos/sonidos/  sonidos (latido)
+recursos/sonidos/  sonidos (latido, pasos, chapoteo, ambientes, creciente, captura, Ramón)
 ```
 
 La lógica no depende de los gráficos: cada entidad lógica guarda su posición y estado,
@@ -123,4 +145,4 @@ y la escena solo lee esos datos en cada cuadro para mover los sprites.
 - [x] Fase 3: piedras con ruido, escondites, pánico y latidos
 - [x] Fase 4: ánimas (percepción, razonamiento, acción, aprendizaje)
 - [x] Fase 5: nivel 2, el río
-- [ ] Fase 6: menús, guardar partida, final con Ramón, sonido
+- [x] Fase 6: menús, guardar partida, final con Ramón, sonido
