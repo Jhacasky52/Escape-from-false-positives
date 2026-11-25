@@ -9,11 +9,40 @@ guiado por las ánimas de las víctimas.
 1. En Qt Creator: **Archivo > Abrir archivo o proyecto** y elegir `CMakeLists.txt`.
 2. Seleccionar el kit de Qt 6 (por ejemplo *Desktop Qt 6.x MinGW 64-bit*) y pulsar **Configurar proyecto**.
 3. Ejecutar con el botón verde (objetivo `LosQueNoVolvieron`).
-4. Para correr las pruebas automáticas, cambiar el objetivo a `pruebas_fisica`, `pruebas_nivel`, `pruebas_animas`, `pruebas_rio` o `pruebas_partida` (abajo a la izquierda, icono del monitor) y ejecutar.
+4. Para correr las pruebas automáticas, cambiar el objetivo a `pruebas_fisica`, `pruebas_nivel`, `pruebas_animas`, `pruebas_rio`, `pruebas_partida` o `pruebas_dificultad` (abajo a la izquierda, icono del monitor) y ejecutar.
 
 ## Estado actual: fase 6 (juego completo)
 
-El juego ya tiene todo el recorrido: **menú → selva → río → final en Cúcuta → menú**.
+El juego ya tiene todo el recorrido: **menú → introducción → selva → río → final en Cúcuta → menú**.
+
+### Dificultad (nivel 1, la selva)
+
+Se elige en el menú (**Dificultad: ◂ Normal ▸**) y se guarda con la partida. No se resolvió con más
+soldados ni menos tiempo: la dificultad se abstrae como **cuánto sabe cada lado y cuánto se perdona un
+error**, separada en cuatro ejes (`logica/control/Dificultad`). Cada eje cambia el comportamiento de una
+clase distinta y `NivelSelva` los aplica al cargar:
+
+| Eje | Qué representa | Fácil | Normal | Difícil | Clase que cambia |
+| --- | --- | --- | --- | --- | --- |
+| 1. Percepción del enemigo | qué tan rápido y lejos detectan | descubre en 1,1 s, oído ×0,8, se rinde a los 2,5 s | 0,7 s, ×1, 4 s | 0,5 s, ×1,25, 6 s | `Soldado` |
+| 2. Inteligencia del enemigo | cómo actúan | cada uno solo | cada uno solo | **se avisan por radio** (los que están a 800 px van a cortarle el paso), **búsqueda predictiva** (al perderlo buscan hacia donde iba) y **revisan los escondites** cercanos al investigar un ruido | `Soldado`, `NivelSelva` |
+| 3. Ayuda de las ánimas | cuánta información recibe el jugador | perciben 700 px, advierten con riesgo 0,55, Ramón cada 18 s | 520 px, 0,75, 30 s | 300 px, 0,95, 45 s y brillo máximo 55 % | `Anima`, `Percepcion`, `Razonamiento`, `AnimaRamon` |
+| 4. Margen de error | cuánto aguanta Carlos | tiembla desde pánico 75, escondido 8 s | 60, 6 s | 45, 4 s | `Miedoso`, `ConocedorDelMonte` |
+
+Normal es exactamente el juego de las fases anteriores. Con **F1** se ven los valores activos.
+`pruebas_dificultad` comprueba cada eje con el comportamiento, por ejemplo: el mismo soldado tarda
+1,12 s / 0,70 s / 0,52 s en descubrir a Carlos; en difícil los soldados cercanos acuden al aviso y en
+fácil no; en difícil encuentran a Carlos escondido y en normal el escondite lo protege; en difícil el
+soldado busca adelante de donde lo vio.
+
+### Ramón
+
+- **Introducción** (`EscenaIntro`, al empezar una partida): la vereda, la amistad de Carlos y Ramón, la
+  noche en que unos hombres se lo llevaron con una oferta de trabajo, y la luz tibia que aparece cuando
+  ahora buscan a Carlos. Enter avanza, Esc la salta.
+- **Recuerdos**: cada vez que la luz de Ramón aparece en un nivel, Carlos recuerda algo de él (abajo, en
+  color cálido). Los recuerdos están en `AnimaRamon` y no se repiten entre niveles.
+- **Final**: el reencuentro en Cúcuta.
 
 **Fase 6:**
 - **Menú principal** (`EscenaMenu`): Nueva partida, Continuar (solo si hay partida guardada), Controles y Salir.
@@ -113,7 +142,7 @@ Controles de la prueba: WASD mover, Shift correr, Espacio lanzar, J nadar, R rei
 
 ```
 logica/            capa lógica (las clases del diagrama del Momento II, sin gráficos)
-  control/         Juego, EstadoJuego, Partida (guardar y cargar en JSON)
+  control/         Juego, EstadoJuego, Partida (guardar y cargar en JSON), Dificultad (4 ejes)
   niveles/         Nivel (abstracta), NivelSelva, NivelRio
   entidades/       Entidad, Personaje, Carlos, Soldado, Linterna, Piedra, Tronco
   rasgos/          Rasgo, ConocedorDelMonte, Miedoso
@@ -123,12 +152,13 @@ vista/             capa gráfica de Qt
   EscenaJuego      bucle de juego con paso fijo (1/60 s)
   EscenaNivelSelva    gráficos del nivel 1: mapa, sprites, oscuridad, cámara, HUD
   EscenaNivelRio      gráficos del nivel 2: fondo con paralaje, agua, rocas, troncos, aire, creciente
-  EscenaMenu          menú principal y controles
+  EscenaMenu          menú principal, dificultad y controles
+  EscenaIntro         introducción: Carlos y Ramón
   EscenaFinal         final en Cúcuta con Ramón
   EscenaPruebaFisica  escena de prueba de la fase 1
   Sonidos             efectos y ambiente (opcional, con Qt Multimedia)
-  VentanaPrincipal    arma el juego y cambia de escena: menú → selva → río → final
-pruebas/           pruebas automáticas: físicas, nivel 1, agente (ánimas), nivel 2 (río) y partida
+  VentanaPrincipal    arma el juego y cambia de escena: menú → introducción → selva → río → final
+pruebas/           pruebas automáticas: físicas, nivel 1, agente (ánimas), nivel 2 (río), partida y dificultad
 recursos/sprites/  sprites (se compilan dentro del ejecutable como :/sprites/...)
 recursos/mapas/    mapas de los niveles en texto
 recursos/sonidos/  sonidos (latido, pasos, chapoteo, ambientes, creciente, captura, Ramón)
@@ -146,3 +176,4 @@ y la escena solo lee esos datos en cada cuadro para mover los sprites.
 - [x] Fase 4: ánimas (percepción, razonamiento, acción, aprendizaje)
 - [x] Fase 5: nivel 2, el río
 - [x] Fase 6: menús, guardar partida, final con Ramón, sonido
+- [x] Dificultad configurable (selva) e introducción con Ramón
