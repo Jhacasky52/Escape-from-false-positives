@@ -41,12 +41,17 @@ public:
     const Razonamiento *getRazonamiento() const { return razonamiento; }
     virtual bool esVisible() const { return true; }
 
+    // Dificultad (eje 3): cuanto ayudan al jugador
+    void setAyuda(double radioPercepcion, double umbralAdvertencia, double brilloMaximo);
+    double getBrilloMaximo() const { return brilloMaximo; }
+
 protected:
     void evaluarObediencia(Nivel *nivel);
 
     QPointF posicion;
     ColorAnima color;
     double brillo;
+    double brilloMaximo;
     double tiempo;
     QPointF desplazamiento;   // separacion respecto a las otras animas
     MovimientoOscilatorio *vaiven;

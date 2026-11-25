@@ -2,6 +2,7 @@
 #define JUEGO_H
 
 #include <QVector>
+#include "Dificultad.h"
 
 class Nivel;
 class Aprendizaje;
@@ -31,6 +32,10 @@ public:
     void reiniciarNivel();
     void alternarPausa();
 
+    // La dificultad se aplica a todos los niveles y toma efecto al cargar el nivel
+    void setDificultad(NivelDificultad n);
+    const Dificultad &getDificultad() const { return dificultad; }
+
     Nivel *nivelActual() const;
     Aprendizaje *getMemoriaAnimas() const { return memoriaAnimas; }
     int getIndiceNivel() const { return indiceNivel; }
@@ -41,7 +46,8 @@ private:
     QVector<Nivel *> niveles;
     int indiceNivel;
     EstadoJuego estado;
-    Aprendizaje *memoriaAnimas;   // lo que aprenden las animas: persiste al reiniciar
+    Aprendizaje *memoriaAnimas;
+    Dificultad dificultad;   // lo que aprenden las animas: persiste al reiniciar
 };
 
 #endif

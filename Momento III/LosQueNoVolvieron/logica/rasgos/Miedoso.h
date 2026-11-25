@@ -16,6 +16,7 @@ public:
     void aplicar(Carlos *carlos, Nivel *nivel, double dt) override;
 
     double getUmbralPanico() const { return umbralPanico; }
+    void setUmbralPanico(double u) { umbralPanico = qBound(1.0, u, 99.0); }
 
 private:
     double umbralPanico;

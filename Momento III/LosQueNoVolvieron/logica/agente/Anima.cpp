@@ -9,7 +9,7 @@
 #include <QtMath>
 
 Anima::Anima(const QPointF &posicion, Aprendizaje *memoria, int indice)
-    : posicion(posicion), color(ColorAnima::BLANCA), brillo(0.8), tiempo(0.0),
+    : posicion(posicion), color(ColorAnima::BLANCA), brillo(0.8), brilloMaximo(1.0), tiempo(0.0),
       vaiven(new MovimientoOscilatorio(7.0, 2.0 + 0.35 * indice, indice * 1.7)),
       percepcion(new Percepcion()), razonamiento(new Razonamiento()), accion(new Accion()),
       aprendizaje(memoria), esperaDecision(0.0), esperaObediencia(INTERVALO_OBEDIENCIA)
@@ -61,6 +61,14 @@ void Anima::actualizar(double dt, Nivel *nivel)
     // 3. Accion (cada cuadro, para que el movimiento sea suave)
     double insistencia = aprendizaje != nullptr ? aprendizaje->insistencia() : 0.0;
     accion->ejecutar(decision, this, carlos, insistencia, dt);
+    brillo = qMin(brillo, brilloMaximo);
+}
+
+void Anima::setAyuda(double radioPercepcion, double umbralAdvertencia, double brilloMax)
+{
+    percepcion->setRadio(radioPercepcion);
+    razonamiento->setUmbralRiesgo(umbralAdvertencia);
+    brilloMaximo = qBound(0.0, brilloMax, 1.0);
 }
 
 void Anima::evaluarObediencia(Nivel *nivel)

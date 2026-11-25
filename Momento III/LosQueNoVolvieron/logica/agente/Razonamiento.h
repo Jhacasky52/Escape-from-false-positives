@@ -23,6 +23,9 @@ public:
     const QMap<QPoint, double> &getUltimoRiesgo() const { return ultimoRiesgo; }
     void setPeso(const QString &nombre, double valor) { pesos[nombre] = valor; }
     double getPeso(const QString &nombre) const { return pesos.value(nombre, 0.0); }
+    // Riesgo desde el que advierte (lo cambia la dificultad; por defecto RIESGO_PELIGRO)
+    void setUmbralRiesgo(double u) { umbralRiesgo = u; }
+    double getUmbralRiesgo() const { return umbralRiesgo; }
 
     // Umbrales de decision
     static constexpr double DISTANCIA_OCULTARSE = 110.0;   // px soldado-Carlos
@@ -38,6 +41,7 @@ private:
 
     QMap<QString, double> pesos;
     QMap<QPoint, double> ultimoRiesgo;
+    double umbralRiesgo = RIESGO_PELIGRO;
 };
 
 #endif

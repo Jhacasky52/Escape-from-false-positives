@@ -60,6 +60,7 @@ public:
 private:
     void leerMapa();
     void moverConColision(Personaje *p, const QPointF &anterior);
+    void avisarSoldados(const Soldado *quienLoVio);   // dificultad: los soldados se avisan
     QPointF centroCelda(int columna, int fila) const;
 
     QString rutaMapa;

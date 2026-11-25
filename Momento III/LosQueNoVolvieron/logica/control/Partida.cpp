@@ -31,6 +31,7 @@ bool Partida::guardar(const Juego &juego, const QString &ruta)
     raiz["juego"] = "Los que no volvieron";
     raiz["version"] = VERSION;
     raiz["nivel"] = juego.getIndiceNivel();
+    raiz["dificultad"] = static_cast<int>(juego.getDificultad().nivel);
     raiz["guardado"] = QDateTime::currentDateTime().toString(Qt::ISODate);
     raiz["animas"] = animas;
 
@@ -60,6 +61,10 @@ bool Partida::cargar(Juego &juego, const QString &ruta)
     if (nivel < 0 || nivel >= juego.numeroNiveles())
         return false;
     QJsonObject animas = raiz["animas"].toObject();
+    // Las partidas guardadas antes de la dificultad no tienen el campo: Normal
+    int dificultad = raiz["dificultad"].toInt(static_cast<int>(NivelDificultad::NORMAL));
+    if (dificultad < 0 || dificultad > static_cast<int>(NivelDificultad::DIFICIL))
+        return false;
 
     QMap<QPoint, double> peligro;
     for (const QJsonValue &v : animas["peligro"].toArray()) {
@@ -81,6 +86,7 @@ bool Partida::cargar(Juego &juego, const QString &ruta)
     mem->setMapaPeligro(peligro);
     mem->setCapturas(capturas);
     mem->setTasaObediencia(animas["obediencia"].toDouble(1.0));
+    juego.setDificultad(static_cast<NivelDificultad>(dificultad));
     juego.iniciarEn(nivel);
     return true;
 }

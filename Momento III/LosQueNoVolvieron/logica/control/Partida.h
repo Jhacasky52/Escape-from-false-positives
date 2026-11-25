@@ -9,7 +9,7 @@ class Juego;
 //  - el nivel al que llego Carlos
 //  - lo que aprendieron las animas (mapa de peligro, capturas y obediencia)
 // Ejemplo:
-//   { "juego": "Los que no volvieron", "version": 1, "nivel": 1,
+//   { "juego": "Los que no volvieron", "version": 1, "nivel": 1, "dificultad": 2,
 //     "guardado": "2026-11-24T19:30:00",
 //     "animas": { "obediencia": 0.82, "capturas": [[12, 7]],
 //                 "peligro": [[12, 7, 1.5], [13, 7, 0.4]] } }

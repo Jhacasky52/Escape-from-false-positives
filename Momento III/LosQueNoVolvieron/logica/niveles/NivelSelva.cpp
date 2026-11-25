@@ -4,6 +4,8 @@
 #include "entidades/Piedra.h"
 #include "agente/Anima.h"
 #include "agente/AnimaRamon.h"
+#include "rasgos/Miedoso.h"
+#include "rasgos/ConocedorDelMonte.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -103,13 +105,27 @@ void NivelSelva::cargar()
     for (const QVector<QPointF> &ruta : rutasSoldados) {
         Soldado *s = new Soldado(ruta);
         s->setPlanificador(planificador);
+        s->configurar(dificultad);            // ejes 1 y 2
         soldados.append(s);
+    }
+    // Eje 4: margen de error de Carlos
+    for (Rasgo *r : carlos->getRasgos()) {
+        if (auto *m = dynamic_cast<Miedoso *>(r))
+            m->setUmbralPanico(dificultad.umbralPanico);
+        if (auto *c = dynamic_cast<ConocedorDelMonte *>(r))
+            c->setTiempoMaxEscondido(dificultad.tiempoMaxEscondido);
     }
 
     // Tres animas de victimas y la de Ramon acompanan a Carlos desde el inicio
     for (int i = 0; i < 3; ++i)
         animas.append(new Anima(inicioCarlos + QPointF(40, -30 + 30 * i), memoria, i));
-    animas.append(new AnimaRamon(inicioCarlos + QPointF(-30, 0), memoria));
+    AnimaRamon *ramon = new AnimaRamon(inicioCarlos + QPointF(-30, 0), memoria);
+    ramon->setPeriodo(dificultad.periodoRamon);
+    animas.append(ramon);
+    // Eje 3: cuanto ayudan las animas
+    for (Anima *a : animas)
+        a->setAyuda(dificultad.radioPercepcionAnimas, dificultad.umbralAdvertencia,
+                    dificultad.brilloMaximoAnimas);
 }
 
 // ------------------------------------------------------------ Actualizacion
@@ -158,11 +174,18 @@ void NivelSelva::actualizar(double dt)
         s->actualizar(dt);
         moverConColision(s, antes);
 
+        bool yaPerseguia = s->getEstado() == EstadoSoldado::PERSIGUIENDO;
         s->detecta(carlos, dt, luz);
 
-        // Lo atrapan si un soldado que lo persigue lo alcanza (escondido se salva)
-        if (s->getEstado() == EstadoSoldado::PERSIGUIENDO && !carlos->estaEscondido()
-            && s->colisionaCon(carlos))
+        // Eje 2 (dificil): el que lo descubre avisa a los cercanos, que van a
+        // cortarle el paso un poco mas adelante de donde va Carlos
+        if (!yaPerseguia && s->getEstado() == EstadoSoldado::PERSIGUIENDO && dificultad.radioAviso > 0.0)
+            avisarSoldados(s);
+
+        // Lo atrapan si un soldado que lo persigue lo alcanza. Escondido se salva,
+        // salvo que el soldado lo haya encontrado revisando el escondite.
+        if (s->getEstado() == EstadoSoldado::PERSIGUIENDO && s->colisionaCon(carlos)
+            && (!carlos->estaEscondido() || s->loEncontroEscondido()))
             capturado = true;
     }
 }
@@ -329,4 +352,18 @@ bool NivelSelva::algunSoldadoPersigue() const
         if (s->getEstado() == EstadoSoldado::PERSIGUIENDO)
             return true;
     return false;
+}
+
+void NivelSelva::avisarSoldados(const Soldado *quienLoVio)
+{
+    QPointF corte = carlos->getPosicion() + carlos->getVelocidad() * 1.0;
+    if (!esTransitable(corte))
+        corte = carlos->getPosicion();
+    for (Soldado *otro : soldados) {
+        if (otro == quienLoVio)
+            continue;
+        QPointF d = otro->getPosicion() - quienLoVio->getPosicion();
+        if (qSqrt(d.x() * d.x() + d.y() * d.y()) <= dificultad.radioAviso)
+            otro->recibirAviso(corte);
+    }
 }

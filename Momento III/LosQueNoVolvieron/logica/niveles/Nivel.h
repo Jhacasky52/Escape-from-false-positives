@@ -5,6 +5,7 @@
 #include <QList>
 #include <QPointF>
 #include <QPoint>
+#include "control/Dificultad.h"
 
 class Carlos;
 class Soldado;
@@ -52,6 +53,9 @@ public:
     const QList<Soldado *> &getSoldados() const { return soldados; }
     const QList<Anima *> &getAnimas() const { return animas; }
     void setMemoria(Aprendizaje *m) { memoria = m; }
+    // Se aplica al cargar el nivel (por ahora solo la usa la selva)
+    void setDificultad(const Dificultad &d) { dificultad = d; }
+    const Dificultad &getDificultad() const { return dificultad; }
     Aprendizaje *getMemoria() const { return memoria; }
     QRectF getMeta() const { return meta; }
     QRectF getLimites() const { return limites; }
@@ -67,6 +71,7 @@ protected:
     QRectF meta;
     QRectF limites;
     bool capturado;
+    Dificultad dificultad;
 };
 
 #endif

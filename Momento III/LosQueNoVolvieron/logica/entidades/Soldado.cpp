@@ -1,6 +1,7 @@
 #include "Soldado.h"
 #include "Linterna.h"
 #include "Carlos.h"
+#include "control/Dificultad.h"
 #include <QtMath>
 
 namespace {
@@ -12,7 +13,10 @@ Soldado::Soldado(const QVector<QPointF> &ruta)
       ruta(ruta), indiceRuta(0), estado(EstadoSoldado::PATRULLANDO),
       linterna(new Linterna(230.0, qDegreesToRadians(21.0), qDegreesToRadians(30.0), 4.0)),
       volviendo(false), sospecha(0.0), tiempoSinVerlo(0.0), tiempoRevisando(0.0),
-      linternaFija(false), anguloLinterna(0.0)
+      linternaFija(false), anguloLinterna(0.0),
+      tiempoDescubrir(TIEMPO_PARA_DESCUBRIR), tiempoRendirse(TIEMPO_PARA_RENDIRSE),
+      olvidoSospecha(0.5), factorOido(1.0), busquedaPredictiva(false), revisaEscondites(false),
+      encontroEscondido(false)
 {
     if (ruta.size() > 1)
         indiceRuta = 1;
@@ -105,10 +109,21 @@ bool Soldado::detecta(const Carlos *carlos, double dt,
 {
     bool enLaLuz = linterna->ilumina(carlos->getPosicion(), bloqueaLuz);
     double visibilidad = carlos->getVisibilidad();   // la vegetacion y los escondites la bajan
+
+    // Dificil: al revisar la zona de un ruido mira dentro de los escondites cercanos
+    bool revisando = estado == EstadoSoldado::INVESTIGANDO && tiempoRevisando > 0.0;
+    if (revisaEscondites && revisando && carlos->estaEscondido()
+        && largo(carlos->getPosicion() - posicion) < RADIO_REVISION) {
+        enLaLuz = true;
+        visibilidad = 0.6;
+        encontroEscondido = true;
+    }
     bool loVe = enLaLuz && visibilidad > 0.0;
 
     if (loVe) {
-        sospecha = qMin(1.0, sospecha + visibilidad * dt / TIEMPO_PARA_DESCUBRIR);
+        sospecha = qMin(1.0, sospecha + visibilidad * dt / tiempoDescubrir);
+        if (!carlos->getVelocidad().isNull())
+            ultimaVelocidadCarlos = carlos->getVelocidad();
         if (estado == EstadoSoldado::PERSIGUIENDO || sospecha >= 1.0) {
             if (estado != EstadoSoldado::PERSIGUIENDO)
                 camino.clear();
@@ -117,14 +132,19 @@ bool Soldado::detecta(const Carlos *carlos, double dt,
             tiempoSinVerlo = 0.0;
         }
     } else {
-        sospecha = qMax(0.0, sospecha - dt * 0.5);
+        sospecha = qMax(0.0, sospecha - dt * olvidoSospecha);
+        if (!carlos->estaEscondido())
+            encontroEscondido = false;
         if (estado == EstadoSoldado::PERSIGUIENDO) {
             tiempoSinVerlo += dt;
-            if (tiempoSinVerlo > TIEMPO_PARA_RENDIRSE) {
-                // Se rinde, pero revisa la zona donde lo vio por ultima vez
+            if (tiempoSinVerlo > tiempoRendirse) {
+                // Se rinde, pero revisa la zona donde lo vio por ultima vez.
+                // Con busqueda predictiva revisa hacia donde iba Carlos.
                 estado = EstadoSoldado::INVESTIGANDO;
                 sospecha = 0.0;
                 tiempoRevisando = 0.0;
+                if (busquedaPredictiva)
+                    puntoSospechoso += ultimaVelocidadCarlos * SEGUNDOS_PREDICCION;
                 irA(puntoSospechoso);
             }
         }
@@ -132,11 +152,32 @@ bool Soldado::detecta(const Carlos *carlos, double dt,
     return loVe;
 }
 
+void Soldado::configurar(const Dificultad &d)
+{
+    tiempoDescubrir = d.tiempoParaDescubrir;
+    tiempoRendirse = d.tiempoParaRendirse;
+    olvidoSospecha = d.olvidoSospecha;
+    factorOido = d.factorOido;
+    busquedaPredictiva = d.busquedaPredictiva;
+    revisaEscondites = d.revisaEscondites;
+}
+
+void Soldado::recibirAviso(const QPointF &punto)
+{
+    if (estado == EstadoSoldado::PERSIGUIENDO)
+        return;
+    estado = EstadoSoldado::INVESTIGANDO;
+    puntoSospechoso = punto;
+    tiempoRevisando = 0.0;
+    volviendo = false;
+    irA(punto);
+}
+
 void Soldado::escucharRuido(const QPointF &origen, double intensidad)
 {
     if (estado == EstadoSoldado::PERSIGUIENDO)
         return;   // si ya lo persigue, no se distrae
-    if (largo(origen - posicion) > RADIO_OIDO * intensidad)
+    if (largo(origen - posicion) > RADIO_OIDO * factorOido * intensidad)
         return;   // muy lejos para oirlo
     estado = EstadoSoldado::INVESTIGANDO;
     puntoSospechoso = origen;

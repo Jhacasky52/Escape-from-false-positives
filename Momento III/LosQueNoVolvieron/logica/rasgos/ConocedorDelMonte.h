@@ -17,6 +17,7 @@ public:
     void aplicar(Carlos *carlos, Nivel *nivel, double dt) override;
 
     double getTiempoMaxEscondido() const { return tiempoMaxEscondido; }
+    void setTiempoMaxEscondido(double t) { tiempoMaxEscondido = t; }
 
 private:
     double factorVisibilidad;

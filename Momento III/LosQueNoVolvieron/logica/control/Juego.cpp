@@ -17,6 +17,7 @@ void Juego::agregarNivel(Nivel *nivel)
 {
     if (nivel != nullptr) {
         nivel->setMemoria(memoriaAnimas);
+        nivel->setDificultad(dificultad);
         niveles.append(nivel);
     }
 }
@@ -93,4 +94,11 @@ Nivel *Juego::nivelActual() const
     if (indiceNivel < 0 || indiceNivel >= niveles.size())
         return nullptr;
     return niveles[indiceNivel];
+}
+
+void Juego::setDificultad(NivelDificultad n)
+{
+    dificultad = Dificultad::crear(n);
+    for (Nivel *nivel : niveles)
+        nivel->setDificultad(dificultad);
 }

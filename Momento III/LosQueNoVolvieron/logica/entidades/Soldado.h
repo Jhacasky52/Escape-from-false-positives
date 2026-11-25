@@ -7,6 +7,7 @@
 
 class Linterna;
 class Carlos;
+struct Dificultad;
 
 enum class EstadoSoldado {
     PATRULLANDO,    // recorre su ruta
@@ -35,6 +36,12 @@ public:
     void escucharRuido(const QPointF &origen, double intensidad);
 
     void setPlanificador(const Planificador &p) { planificador = p; }
+
+    // Dificultad (ejes 1 y 2): percepcion y comportamientos extra
+    void configurar(const Dificultad &d);
+    // Otro soldado lo vio: acude a 'punto' para cortarle el paso (solo en dificil)
+    void recibirAviso(const QPointF &punto);
+    bool loEncontroEscondido() const { return encontroEscondido; }
 
     // Nivel del rio: la linterna apunta siempre al agua (angulo fijo) y se
     // puede cambiar su alcance y apertura.
@@ -70,12 +77,24 @@ private:
     bool linternaFija;
     double anguloLinterna;
 
+    // Valores que cambia la dificultad (por defecto los de NORMAL)
+    double tiempoDescubrir;
+    double tiempoRendirse;
+    double olvidoSospecha;
+    double factorOido;
+    bool busquedaPredictiva;
+    bool revisaEscondites;
+    QPointF ultimaVelocidadCarlos;   // hacia donde iba la ultima vez que lo vio
+    bool encontroEscondido;
+
     static constexpr double VELOCIDAD_PATRULLA = 70.0;
     static constexpr double FACTOR_INVESTIGAR = 1.4;
     static constexpr double FACTOR_PERSECUCION = 2.1;    // 147 px/s
     static constexpr double TIEMPO_PARA_DESCUBRIR = 0.7; // s a plena vista
     static constexpr double TIEMPO_PARA_RENDIRSE = 4.0;
     static constexpr double TIEMPO_REVISANDO = 3.0;
+    static constexpr double RADIO_REVISION = 80.0;     // px: revisa los escondites a esta distancia
+    static constexpr double SEGUNDOS_PREDICCION = 1.2; // cuanto adelanta la busqueda predictiva
 };
 
 #endif

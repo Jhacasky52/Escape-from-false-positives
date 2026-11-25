@@ -14,6 +14,7 @@ public:
     Estimulo percibir(const Nivel *nivel, const QPointF &origen) const;
 
     double getRadio() const { return radio; }
+    void setRadio(double r) { radio = r; }
 
 private:
     double radio;       // px alrededor del anima

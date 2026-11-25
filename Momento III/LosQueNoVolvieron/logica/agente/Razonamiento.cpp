@@ -126,7 +126,7 @@ Decision Razonamiento::decidir(const Estimulo &e, const Aprendizaje *mem)
     }
     // Prioridad 2: peligro donde esta o hacia donde va -> advertir y senalar refugio
     double peligro = qMax(riesgoActual, riesgoAdelante);
-    if (peligro > RIESGO_PELIGRO) {
+    if (peligro > umbralRiesgo) {
         const CeldaPercibida *refugio = (mejorEscondite != nullptr && riesgoEscondite < peligro)
                                         ? mejorEscondite : mejor;
         d.tipo = TipoDecision::ADVERTIR;
