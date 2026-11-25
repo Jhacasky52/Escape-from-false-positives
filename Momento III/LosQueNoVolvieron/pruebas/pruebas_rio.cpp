@@ -7,6 +7,7 @@
 #include "entidades/Tronco.h"
 #include "agente/Razonamiento.h"
 #include "agente/Anima.h"
+#include "agente/AnimaRamon.h"
 #include "agente/Aprendizaje.h"
 
 #include <QCoreApplication>
@@ -289,6 +290,11 @@ int main(int argc, char *argv[])
         rio->getCarlos()->setPosicion(QPointF(4700, 236));
         juego.actualizar(DT);
         verificar(juego.getEstado() == EstadoJuego::FINAL, "juego: al llegar a la otra orilla termina el juego");
+        bool reencuentro = false;
+        for (Anima *a : rio->getAnimas())
+            if (AnimaRamon *r = dynamic_cast<AnimaRamon *>(a))
+                reencuentro = r->enReencuentro() && r->esVisible();
+        verificar(reencuentro, "juego: en la otra orilla Ramon aparece para el reencuentro");
     }
 
     std::printf("\n%s (%d fallos)\n", fallos == 0 ? "TODAS LAS PRUEBAS PASARON" : "HAY PRUEBAS QUE FALLAN", fallos);

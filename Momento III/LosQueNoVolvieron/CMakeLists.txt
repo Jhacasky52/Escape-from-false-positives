@@ -13,6 +13,11 @@ find_package(Qt6 QUIET COMPONENTS Multimedia)
 
 qt_standard_project_setup()
 
+# Los textos del juego tienen tildes: con Visual Studio hay que decirle que el codigo es UTF-8
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 # Sprites y mapas entran al ejecutable como :/sprites/... y :/mapas/...
 file(GLOB_RECURSE SPRITES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
      ${CMAKE_CURRENT_SOURCE_DIR}/recursos/sprites/*.png
@@ -61,6 +66,8 @@ qt_add_executable(LosQueNoVolvieron
     vista/EscenaPruebaFisica.h vista/EscenaPruebaFisica.cpp
     vista/EscenaNivelSelva.h  vista/EscenaNivelSelva.cpp
     vista/EscenaNivelRio.h    vista/EscenaNivelRio.cpp
+    vista/EscenaMenu.h        vista/EscenaMenu.cpp
+    vista/EscenaFinal.h       vista/EscenaFinal.cpp
     vista/Sonidos.h           vista/Sonidos.cpp
 )
 

@@ -148,6 +148,12 @@ void NivelRio::actualizar(double dt)
     actualizarCarlos(dt);
     if (capturado)
         return;
+    if (haGanado()) {
+        // Llego a la otra orilla: Ramon se queda con el para el final
+        for (Anima *a : animas)
+            if (AnimaRamon *r = dynamic_cast<AnimaRamon *>(a))
+                r->reencuentro();
+    }
     actualizarTroncos(dt);
     actualizarAnimas(dt);
     actualizarSoldados(dt);
